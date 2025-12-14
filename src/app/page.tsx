@@ -1,1031 +1,584 @@
 "use client";
 
-import { useRef, useState, useEffect, useMemo } from "react";
-import {
-  motion,
-  useScroll,
-  useTransform,
-  useAnimation,
-  type Variants,
-  type MotionProps,
-} from "framer-motion";
-
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
 import TopNav from "@/components/TopNav";
-import NeuralGradient from "@/components/NeuralGradient";
-import ReziiixScene from "@/components/ReziiixScene";
-import ParallaxContainer from "@/components/Parallax";
 
-/* ---------- motion helpers ---------- */
+type Tone = "neutral" | "accent" | "warning";
+type Pill = { label: string; tone?: Tone };
 
-const fadeUp = (delay = 0): MotionProps => ({
-  initial: { opacity: 0, y: 24 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.7, ease: "easeOut", delay },
-});
+type UseCase = {
+  title: string;
+  area: string;
+  desc: string;
+  result: string;
+  pills: Pill[];
+};
 
-const staggerContainer: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.7, ease: "easeOut", staggerChildren: 0.08 },
+type TimelineStep = {
+  week: string;
+  title: string;
+  desc: string;
+};
+
+const useCases: UseCase[] = [
+  {
+    title: "Policy + Knowledge Ops Agent",
+    area: "Ops · Knowledge",
+    desc: "Turns scattered policy docs and threads into decision-ready briefs with traceable sources and escalation rules.",
+    result: "Less searching. Faster alignment. Clear ownership.",
+    pills: [
+      { label: "Retrieval + synthesis", tone: "accent" },
+      { label: "Citations", tone: "neutral" },
+      { label: "Human approval", tone: "neutral" },
+    ],
   },
-};
+  {
+    title: "Service Desk Triage Fabric",
+    area: "Support · IT/HR",
+    desc: "Routes inbound requests, drafts replies, creates tickets, and keeps an audit trail of every decision.",
+    result: "Lower queue pressure. Stable SLAs as volume grows.",
+    pills: [
+      { label: "Routing", tone: "accent" },
+      { label: "SLA-aware", tone: "neutral" },
+      { label: "Audit trail", tone: "neutral" },
+    ],
+  },
+  {
+    title: "Ops Monitoring + Runbook Agent",
+    area: "Ops · Monitoring",
+    desc: "Watches signals, detects patterns, and prepares runbook actions—only executes when policies allow it.",
+    result: "Fewer surprises. Cleaner 2 a.m. handoffs.",
+    pills: [
+      { label: "Guardrails", tone: "warning" },
+      { label: "Runbooks", tone: "neutral" },
+      { label: "Escalation", tone: "neutral" },
+    ],
+  },
+];
 
-const staggerItem: Variants = {
-  hidden: { opacity: 0, y: 18 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: "easeOut" } },
-};
+const timeline: TimelineStep[] = [
+  {
+    week: "Week 1",
+    title: "Workflow + risk map",
+    desc: "Pick one messy workflow. Define owners, inputs, outputs, constraints, and failure modes.",
+  },
+  {
+    week: "Week 2",
+    title: "Build the first agent",
+    desc: "Integrate where work happens. Add logs, confidence gating, and human review paths.",
+  },
+  {
+    week: "Week 3",
+    title: "Pilot in production",
+    desc: "Ship behind controls. Measure outcomes. Tighten guardrails and edge cases.",
+  },
+  {
+    week: "Week 4",
+    title: "Scale patterns",
+    desc: "Expand to adjacent workflows. Add monitoring and operational playbooks.",
+  },
+];
 
-/* ---------- main page ---------- */
+function cx(...parts: Array<string | false | undefined | null>) {
+  return parts.filter(Boolean).join(" ");
+}
+
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
+}
 
 export default function HomePage() {
-  const { scrollYProgress: pageProgress } = useScroll();
-  const progressScaleX = useTransform(pageProgress, [0, 1], [0, 1]);
-
-  // HERO scroll-driven effects
-  const heroRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
+    target: rootRef,
+    offset: ["start start", "end end"],
   });
 
-  const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.97]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.7]);
-  const heroTranslateY = useTransform(scrollYProgress, [0, 1], [0, -26]);
+  // background intensity changes as you scroll
+  const gridOpacity = useTransform(scrollYProgress, [0, 0.35], [0.75, 0.22]);
+  const vignetteOpacity = useTransform(scrollYProgress, [0, 1], [0.35, 0.65]);
 
-  const haloScale = useTransform(scrollYProgress, [0, 1], [1.05, 0.92]);
-  const haloOpacity = useTransform(scrollYProgress, [0, 1], [0.95, 0.45]);
+  // “AI Factory Configurator”
+  const [complexity, setComplexity] = useState(62);
+  const [risk, setRisk] = useState(46);
+  const [integration, setIntegration] = useState(72);
+  const [copilot, setCopilot] = useState(true);
 
-  /* ---------- “alive” agent console state ---------- */
+  const model = useMemo(() => {
+    // persuasive/illustrative, not a promise
+    const automationCoverage = clamp(
+      Math.round(integration * 0.45 + (100 - risk) * 0.25 + (100 - complexity) * 0.3),
+      18,
+      92
+    );
+    const humanInLoop = clamp(
+      Math.round(risk * 0.55 + complexity * 0.25 + (copilot ? 8 : 0)),
+      10,
+      85
+    );
+    const timeToPilotDays = clamp(
+      Math.round((complexity * 0.35 + risk * 0.25 + (100 - integration) * 0.4) / 2.2),
+      7,
+      35
+    );
 
-  const baseEvents = useMemo(
-    () => [
-      {
-        time: "09:14:03",
-        label: "Intake",
-        text: "New HR request triaged → “Benefits / Eligibility”.",
-      },
-      {
-        time: "09:14:09",
-        label: "Synthesis",
-        text: "Summarised 12-message thread for manager approval.",
-      },
-      {
-        time: "09:14:12",
-        label: "Execution",
-        text: "Draft reply + ticket update prepared for review.",
-      },
-    ],
-    []
-  );
+    const recommended = copilot
+      ? "Microsoft-native deployment + governed agent fabric"
+      : "Custom agent fabric deployed inside your environment";
 
-  const [status, setStatus] = useState<"Healthy" | "Evaluating" | "Review">("Healthy");
-  const [events, setEvents] = useState(baseEvents);
-  const [metrics, setMetrics] = useState({
-    requests: 318,
-    humanReviewPct: 18,
-    slaPct: 96,
-  });
-  const [guardrailHot, setGuardrailHot] = useState(false);
-
-  // background “liveliness” (subtle; stops feeling static)
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      // small, believable ticks
-      setMetrics((m) => ({
-        ...m,
-        requests: m.requests + (Math.random() < 0.35 ? 1 : 0),
-        // keep these stable; tiny variation only
-        humanReviewPct: clampInt(m.humanReviewPct + randChoice([-1, 0, 0, 1]), 12, 26),
-        slaPct: clampInt(m.slaPct + randChoice([-1, 0, 0, 1]), 90, 99),
-      }));
-
-      // occasional status flicker
-      if (Math.random() < 0.18) {
-        setStatus((s) => (s === "Healthy" ? "Evaluating" : "Healthy"));
-        setGuardrailHot(true);
-        window.setTimeout(() => setGuardrailHot(false), 900);
-      }
-
-      // occasionally append a new event
-      if (Math.random() < 0.22) {
-        setEvents((prev) => {
-          const next = makePlausibleEvent();
-          const merged = [...prev.slice(-5), next]; // keep it short & clean
-          return merged;
-        });
-      }
-    }, 8000);
-
-    return () => window.clearInterval(id);
-  }, []);
-
-  const simulateAgentRun = () => {
-    // a deliberate, satisfying “touch the system” moment
-    setStatus("Evaluating");
-    setGuardrailHot(true);
-
-    const t0 = new Date();
-    const first = formatTime(t0);
-
-    const seq = [
-      {
-        time: first,
-        label: "Intake",
-        text: "New request received → routing policy applied.",
-      },
-      {
-        time: formatTime(new Date(t0.getTime() + 2300)),
-        label: "Synthesis",
-        text: "Generated brief + risk flags for human review.",
-      },
-      {
-        time: formatTime(new Date(t0.getTime() + 4100)),
-        label: "Execution",
-        text: "Prepared action plan + draft response in target system.",
-      },
+    const keyControls = [
+      risk > 55 ? "Mandatory human approval for actions" : "Human approval on exceptions",
+      integration < 45 ? "Start read-only + drafting (no write actions)" : "Scoped write actions with audit logs",
+      complexity > 70 ? "Narrow scope: one queue + one system first" : "Pilot one workflow end-to-end",
+      "Event logs + decision traces by default",
     ];
 
-    setEvents((prev) => [...prev.slice(-3), ...seq]);
+    return { automationCoverage, humanInLoop, timeToPilotDays, recommended, keyControls };
+  }, [complexity, risk, integration, copilot]);
 
-    window.setTimeout(() => {
-      setMetrics((m) => ({
-        ...m,
-        requests: m.requests + 1,
-      }));
-    }, 1100);
-
-    window.setTimeout(() => {
-      setStatus("Review");
-      setGuardrailHot(true);
-    }, 1800);
-
-    window.setTimeout(() => {
-      setStatus("Healthy");
-      setGuardrailHot(false);
-    }, 4200);
-  };
+  // tiny “boot” indicator
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setReady(true), 650);
+    return () => window.clearTimeout(t);
+  }, []);
 
   return (
-    <main className="relative min-h-screen bg-black text-neutral-100">
-      {/* ghost 3D scene behind everything */}
-      <ReziiixScene />
-      {/* neural glow */}
-      <NeuralGradient />
+    <main ref={rootRef} className="relative min-h-screen bg-black text-neutral-100">
+      {/* background: blueprint grid + cosmic glow */}
+      <motion.div aria-hidden="true" style={{ opacity: gridOpacity }} className="pointer-events-none fixed inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.10),transparent_55%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:64px_64px] opacity-60" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(129,140,248,0.12),transparent_62%)]" />
+      </motion.div>
 
-      {/* GLOBAL SCROLL PROGRESS BAR */}
       <motion.div
-        className="fixed inset-x-0 top-0 z-50 h-[2px] origin-left bg-gradient-to-r from-violet-400 via-fuchsia-400 to-sky-400"
-        style={{ scaleX: progressScaleX }}
+        aria-hidden="true"
+        style={{ opacity: vignetteOpacity }}
+        className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.85)_75%)]"
       />
 
-      {/* TOP NAV */}
+      {/* keep your existing nav component */}
       <TopNav />
 
-      {/* INTRO SPLASH */}
-      <IntroSplash />
-
       {/* HERO */}
-      <motion.section
-        id="top"
-        ref={heroRef}
-        style={{ scale: heroScale, opacity: heroOpacity, y: heroTranslateY }}
-        className="relative overflow-hidden border-b border-neutral-900/70"
-      >
-        {/* halo behind hero */}
-        <motion.div
-          style={{ scale: haloScale, opacity: haloOpacity }}
-          className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center"
-        >
-          <div className="h-[520px] w-[520px] rounded-[40%] bg-[radial-gradient(circle_at_center,_rgba(129,140,248,0.55),transparent_65%)] blur-3xl" />
-        </motion.div>
-
-        {/* subtle vignette */}
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.9),transparent_70%)]" />
-
-        <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-12 px-4 pb-20 pt-24 md:flex-row md:items-center md:pb-28 md:pt-28">
-          {/* Left copy */}
-          <motion.div {...fadeUp(0)} className="max-w-xl space-y-6 md:space-y-7">
-            <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-neutral-200 backdrop-blur">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(74,222,128,0.9)]" />
-              <span className="uppercase tracking-[0.22em]">Focused AI automation studio</span>
+      <section id="top" className="relative border-b border-white/10">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 pb-14 pt-14 md:grid-cols-[1.05fr,0.95fr] md:pb-20 md:pt-20">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-neutral-200 backdrop-blur">
+              <span className="h-1.5 w-1.5 rounded-full bg-sky-400 shadow-[0_0_14px_rgba(56,189,248,0.8)]" />
+              <span className="uppercase tracking-[0.22em]">Blueprint Edition • Enterprise workflows</span>
             </div>
 
-            <h1 className="text-4xl font-semibold leading-tight text-white md:text-6xl">
-              You own{" "}
+            <h1 className="mt-5 text-4xl font-semibold leading-tight text-white md:text-6xl">
+              Build an internal{" "}
               <span className="bg-gradient-to-r from-sky-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-                an AI factory
+                AI factory
               </span>{" "}
-              inside your company.
+              — not another tool.
             </h1>
 
-            <p className="max-w-md text-sm leading-relaxed text-neutral-200 md:text-[15px]">
-              REZIIIX designs and ships production-grade AI agents embedded in your existing tools.
-              They automate real workflows, log every decision, and hand control back to humans when
-              needed — no black-box SaaS, no lock-in.
+            <p className="mt-5 max-w-xl text-sm leading-relaxed text-neutral-200 md:text-[15px]">
+              REZIIIX designs and deploys production-grade AI systems embedded in your real stack.
+              They observe, decide, and act with audit trails, guardrails, and clean human handoffs.
             </p>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-300">
-              <motion.button
-                whileHover={{ scale: 1.03, y: -1 }}
-                whileTap={{ scale: 0.96 }}
-                className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-black shadow-[0_20px_60px_rgba(248,250,252,0.14)] transition hover:bg-neutral-200"
-                onClick={() =>
-                  document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "start" })
-                }
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <a
+                href="#model"
+                className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-black shadow-[0_20px_60px_rgba(248,250,252,0.12)] hover:bg-neutral-200"
               >
-                Talk to REZIIIX
-              </motion.button>
-
-              <button
-                onClick={() =>
-                  document.getElementById("process")?.scrollIntoView({ behavior: "smooth", block: "start" })
-                }
-                className="rounded-full border border-neutral-600 px-4 py-1.5 text-[11px] uppercase tracking-[0.18em] text-neutral-200 hover:border-neutral-400 hover:text-white"
+                Explore the model
+              </a>
+              <a
+                href="#pilot"
+                className="rounded-full border border-white/15 bg-white/5 px-5 py-2 text-sm text-neutral-200 hover:border-white/25"
               >
-                See how the system works
-              </button>
-
-              <span className="hidden w-px self-stretch bg-neutral-800 md:inline-block" />
-              <span className="text-[11px] text-neutral-400">Remote · working with global teams</span>
+                Start with a pilot
+              </a>
+              <span className="text-[11px] text-neutral-500">Remote • global teams • enterprise-first</span>
             </div>
-          </motion.div>
 
-          {/* Right: Live agent console */}
-          <ParallaxContainer>
-            <motion.div {...fadeUp(0.15)} className="w-full max-w-md md:max-w-lg">
-              <div className="relative overflow-hidden rounded-3xl border border-neutral-700/90 bg-black/80 shadow-[0_30px_80px_rgba(0,0,0,0.9)] backdrop-blur-xl">
-                {/* glow */}
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-sky-500/25 via-violet-500/15 to-transparent" />
+            {/* a quiet credibility anchor */}
+            <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+              <div className="text-[10px] uppercase tracking-[0.26em] text-neutral-400">Principle</div>
+              <div className="mt-2 text-sm text-neutral-200">
+                You own the system: logic, governance, and deployment model. The platform is a means — the factory is the capability.
+              </div>
+            </div>
 
-                <div className="relative flex flex-col gap-3 p-4 md:p-5">
-                  <div className="flex items-center justify-between gap-3">
+            {/* “moment of silence” inside hero column */}
+            <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-4">
+              <div className="text-[10px] uppercase tracking-[0.28em] text-neutral-500">A quiet truth</div>
+              <div className="mt-2 text-lg font-light leading-snug text-neutral-100 md:text-xl">
+                Automation isn’t about speed. It’s about removing uncertainty.
+              </div>
+              <div className="mt-2 text-[12px] leading-relaxed text-neutral-400">
+                That’s why we ship audit trails, escalation paths, and operational ownership from day one.
+              </div>
+            </div>
+          </div>
+
+          {/* Control Room Panel */}
+          <div className="relative">
+            <div className="absolute -inset-6 rounded-[28px] bg-[radial-gradient(circle_at_top,rgba(129,140,248,0.20),transparent_65%)] blur-2xl" />
+            <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/60 backdrop-blur-xl">
+              <div className="border-b border-white/10 bg-white/5 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">Factory console</div>
+                    <div className="text-xs text-neutral-200">REZIIIX • Orchestration</div>
+                  </div>
+
+                  <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1">
+                    <span className={cx("h-1.5 w-1.5 rounded-full", ready ? "bg-emerald-400" : "bg-neutral-600")} />
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-200">
+                      {ready ? "System ready" : "Booting"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <StatCard label="Automation coverage" value={`${model.automationCoverage}%`} hint="Where the system can act safely." />
+                  <StatCard label="Human-in-loop" value={`${model.humanInLoop}%`} hint="Review gating & escalation rate." />
+                  <StatCard label="Time to pilot" value={`${model.timeToPilotDays} days`} hint="Typical build-to-live cycle." />
+                  <StatCard label="Deployment" value={copilot ? "Microsoft-native" : "Custom fabric"} hint="Matches your environment." />
+                </div>
+
+                <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">
-                        Live agent
-                      </p>
-                      <p className="text-xs text-neutral-100">REZIIIX · Production orchestration</p>
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">Recommendation</div>
+                      <div className="mt-1 text-sm text-neutral-100">{model.recommended}</div>
+                      <div className="mt-2 text-[12px] leading-relaxed text-neutral-400">
+                        Built inside your environment. Governed behavior. Expand workflow by workflow.
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {/* “touch the system” button */}
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.97 }}
-                        type="button"
-                        onClick={simulateAgentRun}
-                        className="rounded-full border border-neutral-700 bg-neutral-950/70 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-neutral-200 hover:border-neutral-500"
-                        aria-label="Simulate agent run"
-                      >
-                        Simulate run
-                      </motion.button>
+                    <label className="flex items-center gap-2 text-[11px] text-neutral-300">
+                      <input
+                        type="checkbox"
+                        checked={copilot}
+                        onChange={(e) => setCopilot(e.target.checked)}
+                        className="h-4 w-4 accent-white"
+                      />
+                      Copilot Studio / M365
+                    </label>
+                  </div>
 
-                      <div className="flex items-center gap-1.5 rounded-full bg-neutral-900/80 px-2 py-1">
-                        <span
-                          className={
-                            "h-1.5 w-1.5 rounded-full shadow-[0_0_10px_rgba(74,222,128,0.9)] " +
-                            (status === "Healthy"
-                              ? "bg-emerald-400"
-                              : status === "Evaluating"
-                              ? "bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.9)]"
-                              : "bg-amber-300 shadow-[0_0_12px_rgba(252,211,77,0.9)]")
-                          }
-                        />
-                        <span className="text-[10px] text-neutral-200">{status}</span>
-                      </div>
+                  <div className="mt-4 space-y-2">
+                    <Slider label="Workflow complexity" value={complexity} onChange={setComplexity} />
+                    <Slider label="Risk / compliance sensitivity" value={risk} onChange={setRisk} />
+                    <Slider label="Integration readiness" value={integration} onChange={setIntegration} />
+                  </div>
+
+                  <div className="mt-4 rounded-xl border border-white/10 bg-black/40 p-3">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">Key controls</div>
+                    <ul className="mt-2 space-y-1 text-[12px] text-neutral-200">
+                      {model.keyControls.map((c, idx) => (
+                        <li key={idx} className="flex gap-2">
+                          <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-sky-400" />
+                          <span>{c}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="mt-3 text-[11px] text-neutral-500">
+                      Optional: Reziiix can run a workshop so teams learn to build and operate Copilot Studio / M365 agents safely.
+                    </div>
+
+                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-black/50">
+                      <motion.div
+                        className="h-full bg-white/70"
+                        animate={{ x: ["-40%", "140%"], opacity: [0.2, 0.8, 0.2] }}
+                        transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
+                        style={{ width: "35%" }}
+                      />
                     </div>
                   </div>
 
-                  <div className="grid gap-3 md:grid-cols-[1.3fr,1fr]">
-                    {/* log */}
-                    <div className="space-y-2 rounded-2xl border border-neutral-700 bg-neutral-950/85 p-2.5 text-[11px] text-neutral-50">
-                      <div className="mb-1 flex items-center justify-between text-[10px] text-neutral-500">
-                        <span>Event stream</span>
-                        <span>Last 30 sec</span>
-                      </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Tag>Audit trails</Tag>
+                    <Tag>Confidence gating</Tag>
+                    <Tag>Human handoffs</Tag>
+                    <Tag>Policy-first</Tag>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                      {events.slice(-6).map((item) => (
-                        <div key={`${item.time}-${item.label}-${item.text}`} className="flex gap-2">
-                          <div className="mt-[3px] h-1.5 w-1.5 rounded-full bg-sky-400" />
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2 text-[10px] text-neutral-500">
-                              <span>{item.time}</span>
-                              <span className="rounded-full border border-neutral-700 px-1.5 py-[1px] text-[9px] uppercase tracking-[0.14em]">
-                                {item.label}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-neutral-100">{item.text}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+            <div className="mt-3 text-[11px] text-neutral-500">
+              Not a chat demo. A control model for production automation.
+            </div>
+          </div>
+        </div>
+      </section>
 
-                    {/* metrics */}
-                    <div className="space-y-2 rounded-2xl border border-neutral-700 bg-neutral-950/85 p-2.5 text-[11px] text-neutral-100">
-                      <div className="mb-1 flex items-center justify-between text-[10px] text-neutral-500">
-                        <span>Today</span>
-                        <span>Session load</span>
-                      </div>
+      {/* MODEL */}
+      <section id="model" className="border-b border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
+          <div className="grid gap-10 md:grid-cols-[0.9fr,1.1fr]">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.26em] text-neutral-500">The model</div>
+              <h2 className="mt-3 text-2xl font-medium md:text-3xl">Input → Fabric → Output</h2>
+              <p className="mt-4 text-sm leading-relaxed text-neutral-300">
+                A factory is a governed fabric of agents, tools, and controls. It turns messy inputs into traceable outputs with predictable behavior.
+              </p>
 
-                      <div className="space-y-1.5">
-                        <MetricRow label="Requests handled" value={String(metrics.requests)} />
-                        <MetricRow label="Avg. human review" value={`${metrics.humanReviewPct}%`} />
-                        <MetricRow label="SLA matched" value={`${metrics.slaPct}%`} />
-                      </div>
+              <div className="mt-7 space-y-3">
+                <MiniRule title="Evidence over vibes">
+                  Agents link decisions back to sources, events, and policies.
+                </MiniRule>
+                <MiniRule title="Safe by default">
+                  Start with read-only + drafting, then graduate to scoped actions.
+                </MiniRule>
+                <MiniRule title="Humans remain owners">
+                  Confidence gating and approvals keep responsibility clear.
+                </MiniRule>
+              </div>
+            </div>
 
-                      <div
-                        className={
-                          "mt-2 space-y-1 rounded-xl border bg-black/80 p-2 text-[10px] text-neutral-300 transition " +
-                          (guardrailHot ? "border-neutral-500" : "border-neutral-700")
-                        }
-                      >
-                        <p className="uppercase tracking-[0.14em] text-neutral-500">Guardrail</p>
-                        <p>
-                          If confidence &lt; 0.85 or data incomplete → assign to human, attach summary
-                          + suggested next steps.
-                        </p>
+            <Diagram />
+          </div>
+        </div>
+      </section>
 
-                        {/* subtle pulse bar to imply “risk management” */}
-                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-900">
-                          <motion.div
-                            className="h-full bg-white/70"
-                            animate={{
-                              x: guardrailHot ? ["-20%", "120%"] : ["-35%", "115%"],
-                              opacity: guardrailHot ? [0.25, 0.8, 0.25] : [0.15, 0.45, 0.15],
-                            }}
-                            transition={{ duration: guardrailHot ? 1.1 : 3.2, repeat: Infinity, ease: "easeInOut" }}
-                            style={{ width: "35%" }}
-                          />
-                        </div>
-                      </div>
+      {/* PATTERNS / CASES */}
+      <section id="cases" className="border-b border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.26em] text-neutral-500">Patterns</div>
+              <h2 className="mt-3 text-2xl font-medium md:text-3xl">What the factory produces</h2>
+            </div>
+            <div className="max-w-md text-[12px] leading-relaxed text-neutral-400">
+              No logo wall. Just repeatable patterns that adapt to your tools and constraints.
+            </div>
+          </div>
+
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {useCases.map((c) => (
+              <div
+                key={c.title}
+                className="group rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur transition hover:border-white/20"
+              >
+                <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">{c.area}</div>
+                <div className="mt-2 text-base font-medium text-white">{c.title}</div>
+                <div className="mt-3 text-[13px] leading-relaxed text-neutral-300">{c.desc}</div>
+
+                <div className="mt-4 text-[12px] text-neutral-400">Outcome</div>
+                <div className="mt-1 text-[13px] text-neutral-200">{c.result}</div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {c.pills.map((p) => (
+                    <PillBadge key={p.label} pill={p} />
+                  ))}
+                </div>
+
+                <div className="mt-5 h-px bg-white/10" />
+                <div className="mt-4 text-[11px] text-neutral-500">
+                  Deployed inside your environment — or delivered as a managed pilot.
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PILOT */}
+      <section id="pilot" className="border-b border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
+          <div className="grid gap-10 md:grid-cols-[1fr,1fr]">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.26em] text-neutral-500">Pilot</div>
+              <h2 className="mt-3 text-2xl font-medium md:text-3xl">Start small. Ship something real.</h2>
+              <p className="mt-4 text-sm leading-relaxed text-neutral-300">
+                Most engagements begin with one workflow. We ship it into production with logs, gating, and operational ownership — then expand responsibly.
+              </p>
+
+              <div className="mt-8 space-y-3">
+                {timeline.map((s) => (
+                  <div key={s.week} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">{s.week}</div>
+                    <div className="mt-1 text-sm font-medium text-neutral-100">{s.title}</div>
+                    <div className="mt-2 text-[13px] leading-relaxed text-neutral-300">{s.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* CONTACT */}
+            <div id="contact" className="relative">
+              <div className="absolute -inset-6 rounded-[28px] bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.14),transparent_60%)] blur-2xl" />
+              <div className="relative rounded-[24px] border border-white/10 bg-black/60 p-5 backdrop-blur-xl">
+                <div className="text-[10px] uppercase tracking-[0.26em] text-neutral-400">Contact</div>
+                <div className="mt-2 text-xl font-medium text-white">Bring one messy workflow.</div>
+                <div className="mt-3 text-[13px] leading-relaxed text-neutral-300">
+                  Tell us what’s slow, fragile, or repetitive. We’ll reply with a concrete agent concept,
+                  deployment approach, and what “production” means in your environment.
+                </div>
+
+                <div className="mt-6 space-y-3">
+                  <input
+                    placeholder="Name"
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none focus:border-white/25"
+                  />
+                  <input
+                    placeholder="Work email"
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none focus:border-white/25"
+                  />
+                  <textarea
+                    placeholder="Describe the workflow..."
+                    className="h-28 w-full resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none focus:border-white/25"
+                  />
+
+                  <button className="w-full rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-neutral-200">
+                    Send (static form)
+                  </button>
+
+                  <div className="text-[11px] text-neutral-500">
+                    Email works too: <span className="text-neutral-200">hello@reziiix.com</span>
+                  </div>
+
+                  <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">Operational promise</div>
+                    <div className="mt-2 text-[13px] leading-relaxed text-neutral-300">
+                      Agents ship with audit trails, escalation paths, and clear ownership. No mystery behavior. No hidden automation.
                     </div>
                   </div>
                 </div>
               </div>
 
-              <p className="mt-3 text-[11px] text-neutral-400">
-                This is what we actually build: a running agent inside your stack, with logs, metrics,
-                and clear rules for when humans stay in the loop.
-              </p>
-            </motion.div>
-          </ParallaxContainer>
-        </div>
-      </motion.section>
-
-      {/* PHASE MARKER */}
-      <PhaseDivider label="Phase I: Foundations" />
-
-      {/* SERVICES */}
-      <ServicesSection />
-
-      {/* “moment of silence” */}
-      <SilentSection />
-
-      {/* PHASE MARKER */}
-      <PhaseDivider label="Phase II: System Behavior" />
-
-      {/* PROCESS – sticky story */}
-      <SystemsStory />
-
-      {/* PHASE MARKER */}
-      <PhaseDivider label="Phase III: Patterns" />
-
-      {/* Example agents */}
-      <ExampleAgents />
-
-      {/* WORKFLOW STRIP (anchor for “Process” in nav) */}
-      <motion.section
-        id="process"
-        className="border-b border-neutral-900 bg-neutral-950"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.4 }}
-        variants={staggerContainer}
-      >
-        <div className="mx-auto max-w-5xl px-4 py-12 md:py-14">
-          <motion.div className="mb-6 flex items-center justify-between gap-4" variants={staggerItem}>
-            <h2 className="text-sm font-medium md:text-base">A simple mental model.</h2>
-            <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-400">Input → Agent → Output</p>
-          </motion.div>
-
-          <motion.div
-            className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-black px-4 py-5 text-xs md:px-6 md:py-6 md:text-[13px]"
-            variants={staggerItem}
-          >
-            <div className="absolute left-6 right-6 top-1/2 h-px -translate-y-1/2 bg-neutral-700/70" />
-            <motion.div
-              className="absolute top-1/2 h-[2px] w-20 -translate-y-1/2 bg-white"
-              initial={{ x: "-10%" }}
-              animate={{ x: "110%" }}
-              transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <div className="relative grid gap-3 md:grid-cols-3">
-              <WorkflowNode
-                title="Inputs"
-                body="Email, chats, forms, documents, metrics — wherever the work currently shows up."
-              />
-              <WorkflowNode
-                title="REZIIIX agent"
-                body="Scoped logic, tools, memory, and policies designed for your workflow and risk level."
-                strong
-              />
-              <WorkflowNode
-                title="Outputs"
-                body="Updates, drafts, tickets, reports — delivered into the systems and channels you already use."
-              />
+              <div className="mt-4 text-center text-[11px] text-neutral-600">
+                © {new Date().getFullYear()} REZIIIX • Blueprint Edition
+              </div>
             </div>
-          </motion.div>
-        </div>
-      </motion.section>
-
-      {/* ABOUT */}
-      <motion.section
-        id="about"
-        className="border-b border-neutral-900 bg-black scroll-mt-24 md:scroll-mt-28"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.3 }}
-        variants={staggerContainer}
-      >
-        <div className="mx-auto max-w-5xl px-4 py-12 md:py-16">
-          <div className="grid gap-8 md:grid-cols-[minmax(0,1.2fr),minmax(0,1fr)]">
-            <motion.div variants={staggerItem}>
-              <h2 className="mb-3 text-xl font-medium md:text-2xl">A small studio for serious work.</h2>
-              <p className="text-sm leading-relaxed text-neutral-200">
-                REZIIIX operates as a focused AI automation studio. We work with teams who have real
-                workloads, data, and constraints — not just ideas. The output is always a running system
-                that your people can use and trust.
-              </p>
-            </motion.div>
-            <motion.div className="space-y-3 text-xs text-neutral-300" variants={staggerItem}>
-              <p>▸ Remote-first, working with global teams.</p>
-              <p>▸ Comfortable close to your data, policies, and security.</p>
-              <p>▸ Opinionated about scoping: start with one workflow, make it real, then expand.</p>
-            </motion.div>
           </div>
         </div>
-      </motion.section>
-
-      {/* CONTACT */}
-      <motion.section
-        id="contact"
-        className="border-b border-neutral-900 bg-black"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.3 }}
-        variants={staggerContainer}
-      >
-        <div className="mx-auto max-w-5xl px-4 py-12 md:py-16">
-          <div className="grid gap-8 md:grid-cols-[minmax(0,1.1fr),minmax(0,1fr)]">
-            <motion.div className="space-y-4" variants={staggerItem}>
-              <h2 className="text-xl font-medium md:text-2xl">Bring one messy workflow.</h2>
-              <p className="text-sm leading-relaxed text-neutral-200">
-                Describe one process that feels slow, repetitive, or fragile. We&apos;ll respond with a
-                concrete agent concept, technical approach, and what &quot;production&quot; could look like for you.
-              </p>
-              <p className="text-xs text-neutral-300">
-                Email: <span className="text-neutral-100">hello@reziiix.com</span>
-              </p>
-            </motion.div>
-
-            <motion.div
-              className="space-y-3 rounded-2xl border border-neutral-800 bg-black/75 px-4 py-5 text-xs md:px-5 md:py-6"
-              variants={staggerItem}
-            >
-              <input
-                type="text"
-                placeholder="Your name"
-                className="w-full rounded-md border border-neutral-700 bg-neutral-950/90 px-3 py-2 text-xs text-neutral-100 placeholder:text-neutral-600 outline-none focus:border-neutral-400"
-              />
-              <input
-                type="email"
-                placeholder="Work email"
-                className="w-full rounded-md border border-neutral-700 bg-neutral-950/90 px-3 py-2 text-xs text-neutral-100 placeholder:text-neutral-600 outline-none focus:border-neutral-400"
-              />
-              <textarea
-                placeholder="Describe one workflow you’d like to automate..."
-                className="h-24 w-full resize-none rounded-md border border-neutral-700 bg-neutral-950/90 px-3 py-2 text-xs text-neutral-100 placeholder:text-neutral-600 outline-none focus:border-neutral-400"
-              />
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.96 }}
-                type="button"
-                className="w-full rounded-md border border-neutral-500 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.18em] hover:bg-neutral-900"
-              >
-                Send (static form)
-              </motion.button>
-              <p className="text-[10px] text-neutral-500">
-                This form is intentionally static. We can wire it to your email, CRM, or directly into an intake agent once your stack is defined.
-              </p>
-            </motion.div>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* FOOTER */}
-      <footer className="py-6 text-center text-[11px] text-neutral-500">
-        © {new Date().getFullYear()} REZIIIX · AI Automation Studio
-      </footer>
+      </section>
     </main>
   );
 }
 
-/* ---------- INTRO SPLASH ---------- */
+/* ---------- components ---------- */
 
-function IntroSplash() {
-  const introRef = useRef<HTMLDivElement | null>(null);
-  const { scrollYProgress } = useScroll({
-    target: introRef,
-    offset: ["start start", "end start"],
-  });
+function StatCard({ label, value, hint }: { label: string; value: string; hint: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">{label}</div>
+      <div className="mt-2 text-xl font-semibold text-white">{value}</div>
+      <div className="mt-2 text-[12px] leading-relaxed text-neutral-400">{hint}</div>
+    </div>
+  );
+}
 
-  // fade on scroll
-  const opacity = useTransform(scrollYProgress, [0, 0.4, 1], [1, 0.7, 0]);
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.04]);
-  const translateY = useTransform(scrollYProgress, [0, 1], [0, -40]);
+function Slider({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-[11px] text-neutral-400">
+        <span>{label}</span>
+        <span className="text-neutral-200">{value}</span>
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="mt-2 w-full accent-white"
+      />
+    </div>
+  );
+}
 
-  // entrance animation
-  const controls = useAnimation();
-  useEffect(() => {
-    controls.start({
-      opacity: [0, 1],
-      y: [36, 0],
-      transition: { duration: 1.3, ease: [0.19, 1, 0.22, 1] },
-    });
-  }, [controls]);
+function Tag({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-neutral-300">
+      {children}
+    </span>
+  );
+}
 
-  const handleScrollDown = () => {
-    const el = document.getElementById("top");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+function PillBadge({ pill }: { pill: Pill }) {
+  const tone =
+    pill.tone === "accent"
+      ? "border-sky-400/30 bg-sky-400/10 text-sky-200"
+      : pill.tone === "warning"
+      ? "border-amber-300/30 bg-amber-300/10 text-amber-200"
+      : "border-white/10 bg-black/30 text-neutral-300";
 
   return (
-    <motion.section
-      ref={introRef}
-      style={{ opacity, scale, y: translateY }}
-      className="relative flex min-h-[92vh] items-center justify-center overflow-hidden bg-black"
-    >
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.18),transparent_55%)] blur-3xl" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.12),rgba(180,200,255,0.06),transparent_70%)]" />
+    <span className={cx("rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.18em]", tone)}>
+      {pill.label}
+    </span>
+  );
+}
 
-        <motion.div
-          initial={{ rotate: 0 }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 90, repeat: Infinity, ease: "linear" }}
-          className="absolute left-1/2 top-1/2 h-[44rem] w-[44rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10"
-        />
-        <motion.div
-          initial={{ rotate: 0 }}
-          animate={{ rotate: -360 }}
-          transition={{ duration: 140, repeat: Infinity, ease: "linear" }}
-          className="absolute left-1/2 top-1/2 h-[30rem] w-[30rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/5"
-        />
+function MiniRule({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+      <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">{title}</div>
+      <div className="mt-2 text-[13px] leading-relaxed text-neutral-300">{children}</div>
+    </div>
+  );
+}
+
+function Diagram() {
+  return (
+    <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/60 p-6 backdrop-blur-xl">
+      <div className="text-[10px] uppercase tracking-[0.26em] text-neutral-400">System blueprint</div>
+      <div className="mt-2 text-sm text-neutral-200">A governed fabric of agents</div>
+
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <DiagramNode title="Inputs" body="Email • tickets • docs • metrics • chat" />
+        <DiagramNode title="Agent fabric" body="Tools • memory • rules • confidence gating" strong />
+        <DiagramNode title="Outputs" body="Drafts • tickets • updates • reports • runbooks" />
       </div>
 
-      <motion.div animate={controls} className="relative z-10 flex flex-col items-center gap-6 text-center">
-        <motion.span
-          initial={{ backgroundPositionX: "0%" }}
-          animate={{
-            backgroundPositionX: ["0%", "100%", "0%"],
-            letterSpacing: ["0.18em", "0.22em", "0.18em"],
-          }}
-          transition={{
-            backgroundPositionX: { duration: 8, repeat: Infinity, ease: "linear" },
-            letterSpacing: { duration: 6, repeat: Infinity, ease: "easeInOut" },
-          }}
-          className="
-            select-none
-            bg-[linear-gradient(120deg,#ffffff,#dfe9ff,#e3f2ff,#ffffff)]
-            bg-clip-text
-            text-transparent
-            text-[clamp(4rem,15vw,11rem)]
-            font-light
-            tracking-[0.22em]
-            drop-shadow-[0_0_55px_rgba(255,255,255,0.28)]
-            uppercase
-          "
-          style={{ backgroundSize: "200% 100%" }}
-        >
-          REZIIIX
-        </motion.span>
-
-        <p className="max-w-md text-[11px] uppercase tracking-[0.28em] text-neutral-300">
-          Build an AI factory inside your company — real agents in real systems, with real control.
-        </p>
-
-        <motion.button
-          type="button"
-          onClick={handleScrollDown}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, y: [0, 6, 0] }}
-          transition={{
-            y: { duration: 1.7, repeat: Infinity, ease: "easeInOut" },
-            opacity: { delay: 0.6, duration: 0.8 },
-          }}
-          className="relative flex flex-col items-center gap-3 text-[11px] text-neutral-200"
-        >
-          <div className="flex items-center gap-2">
-            <div className="h-[1px] w-16 bg-white/30" />
-            <span>Enter the system</span>
-            <div className="h-[1px] w-16 bg-white/30" />
+      <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-[12px] text-neutral-300">
+            <span className="text-neutral-100">Key idea:</span> decisions remain traceable, actions remain controllable.
           </div>
-
-          <div className="relative">
+          <motion.div
+            className="h-1.5 w-40 overflow-hidden rounded-full bg-black/50"
+            initial={{ opacity: 0.9 }}
+            animate={{ opacity: [0.6, 0.95, 0.6] }}
+            transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+          >
             <motion.div
-              animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0.7, 0.4] }}
-              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -inset-4 rounded-full bg-white/10 blur-2xl"
+              className="h-full w-1/3 bg-white/70"
+              animate={{ x: ["-40%", "140%"] }}
+              transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
             />
-            <div
-              className="
-                relative z-10 flex h-12 w-12 items-center justify-center
-                rounded-full
-                border border-white/40
-                bg-white/10
-                backdrop-blur-xl
-                shadow-[0_0_38px_rgba(255,255,255,0.45)]
-              "
-            >
-              <span className="text-white text-lg leading-none">↓</span>
-            </div>
-          </div>
-        </motion.button>
-      </motion.div>
-    </motion.section>
-  );
-}
-
-/* ---------- SERVICES SECTION ---------- */
-
-function ServicesSection() {
-  return (
-    <motion.section
-      id="services"
-      className="border-b border-neutral-900 bg-black"
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount: 0.3 }}
-      variants={staggerContainer}
-    >
-      <div className="mx-auto max-w-5xl px-4 py-16 md:py-20">
-        <motion.div
-          className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between"
-          variants={staggerItem}
-        >
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">Services</p>
-            <h2 className="mt-2 text-xl font-medium md:text-2xl">From experiment to production system.</h2>
-          </div>
-          <p className="max-w-sm text-xs leading-relaxed text-neutral-500">
-            We don&apos;t ship toy demos. Each engagement ends with a running system, observable behavior, and a clear next workflow to automate.
-          </p>
-        </motion.div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            {
-              label: "Discovery sprint",
-              body: "Map your workflows, data, tools, and risks. We define the smallest agent that is still genuinely useful.",
-            },
-            {
-              label: "Pilot agent",
-              body: "Design, build, and ship one agent into a controlled environment with guardrails, logs, and review loops.",
-            },
-            {
-              label: "Scale-out",
-              body: "Extend to adjacent workflows, connect more tools, and add monitoring so you can treat agents like any other system.",
-            },
-          ].map((card, i) => (
-            <ParallaxContainer key={card.label}>
-              <motion.article
-                variants={staggerItem}
-                className="relative h-full overflow-hidden rounded-2xl border border-neutral-800 bg-gradient-to-b from-neutral-950/90 via-black to-black/90 px-4 py-4 text-xs shadow-[0_20px_60px_rgba(0,0,0,0.7)] md:px-5 md:py-5"
-              >
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(129,140,248,0.24),transparent_60%)]" />
-                <div className="relative space-y-2">
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">
-                    {String(i + 1).padStart(2, "0")} / Phase
-                  </p>
-                  <h3 className="text-sm font-medium text-white">{card.label}</h3>
-                  <p className="text-[13px] leading-relaxed text-neutral-400">{card.body}</p>
-                </div>
-              </motion.article>
-            </ParallaxContainer>
-          ))}
-        </div>
-
-        {/* PLATFORM STRIP */}
-        <motion.div variants={staggerItem} className="mt-6 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950/60">
-          <div className="px-4 py-4 md:px-5 md:py-5">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">Integrated delivery</p>
-            <h3 className="mt-2 text-sm font-medium md:text-base">
-              Built into your stack (including Microsoft).
-            </h3>
-            <p className="mt-2 text-xs leading-relaxed text-neutral-400">
-              We deploy agents inside your environment and tools. If your organization is Microsoft-native, we can also develop{" "}
-              <span className="text-neutral-200">Copilot Studio / M365 agents</span> as part of the same governed system — not isolated assistants.
-            </p>
-            <p className="mt-3 text-[11px] leading-relaxed text-neutral-500">
-              Optional: Reziiix can run a hands-on workshop to help your team learn to design, test, and operate Copilot Studio / M365 automations safely.
-            </p>
-
-            <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-neutral-400">
-              <span className="rounded-full border border-neutral-800 bg-black/50 px-2 py-1">Custom agents</span>
-              <span className="rounded-full border border-neutral-800 bg-black/50 px-2 py-1">Copilot Studio</span>
-              <span className="rounded-full border border-neutral-800 bg-black/50 px-2 py-1">M365 agents</span>
-              <span className="rounded-full border border-neutral-800 bg-black/50 px-2 py-1">Audit trails</span>
-              <span className="rounded-full border border-neutral-800 bg-black/50 px-2 py-1">Human-in-loop</span>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </motion.section>
-  );
-}
-
-/* ---------- sticky Systems story ---------- */
-
-function SystemsStory() {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start center", "end center"],
-  });
-
-  const triageOpacity = useTransform(scrollYProgress, [0, 0.15, 0.35], [1, 1, 0.25]);
-  const triageY = useTransform(scrollYProgress, [0, 0.35], [0, -40]);
-
-  const synthOpacity = useTransform(scrollYProgress, [0.2, 0.4, 0.65], [0.25, 1, 0.25]);
-  const synthY = useTransform(scrollYProgress, [0.2, 0.65], [30, -40]);
-
-  const execOpacity = useTransform(scrollYProgress, [0.5, 0.75, 1], [0.2, 1, 1]);
-  const execY = useTransform(scrollYProgress, [0.5, 1], [40, 0]);
-
-  return (
-    <section ref={ref} className="relative border-b border-neutral-900 bg-black">
-      <div className="mx-auto max-w-5xl px-4 py-24 md:py-40">
-        <div className="sticky top-24 space-y-10 md:space-y-12">
-          <div className="max-w-xl space-y-3">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">Process</p>
-            <h2 className="text-xl font-medium md:text-2xl">We automate the unglamorous work that never stops.</h2>
-            <p className="text-xs leading-relaxed text-neutral-500 md:text-sm">
-              As you scroll, you&apos;re moving through the three stages we usually automate first in a real team: intake, synthesis, and execution.
-            </p>
-          </div>
-
-          <div className="space-y-4 md:space-y-5">
-            <motion.article
-              style={{ opacity: triageOpacity, y: triageY }}
-              className="rounded-2xl border border-neutral-800 bg-neutral-950/80 px-4 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.5)] md:px-5 md:py-5"
-            >
-              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">01 / Triage</p>
-              <h3 className="mt-2 text-sm font-medium md:text-base">Signal intake & routing</h3>
-              <p className="mt-2 text-xs leading-relaxed text-neutral-400">
-                Classify, enrich, and route inbound requests from email, forms, and tickets into the right queues — with confidence scores, SLAs, and human review paths baked in.
-              </p>
-            </motion.article>
-
-            <motion.article
-              style={{ opacity: synthOpacity, y: synthY }}
-              className="rounded-2xl border border-neutral-800 bg-neutral-950/80 px-4 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.5)] md:px-5 md:py-5"
-            >
-              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">02 / Synthesis</p>
-              <h3 className="mt-2 text-sm font-medium md:text-base">Summaries & briefings</h3>
-              <p className="mt-2 text-xs leading-relaxed text-neutral-400">
-                Turn sprawling threads, dashboards, and documents into concise, decision-ready briefs your team can edit, not rewrite — with context links back to the originals.
-              </p>
-            </motion.article>
-
-            <motion.article
-              style={{ opacity: execOpacity, y: execY }}
-              className="rounded-2xl border border-neutral-800 bg-neutral-950/80 px-4 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.5)] md:px-5 md:py-5"
-            >
-              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">03 / Execution</p>
-              <h3 className="mt-2 text-sm font-medium md:text-base">Agentic workflows</h3>
-              <p className="mt-2 text-xs leading-relaxed text-neutral-400">
-                Trigger actions in your stack — update records, open tickets, draft replies, generate reports — all within defined guardrails, observability, and audit trails.
-              </p>
-            </motion.article>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- Example agents horizontal track ---------- */
-
-function ExampleAgents() {
-  const agents = [
-    {
-      name: "KnowledgeFlow Copilot",
-      tag: "Ops · Knowledge",
-      description:
-        "Searches, ranks, and summarizes content across your knowledge base with source links, so teams get decision-ready answers instead of search results.",
-      impact: "Cuts hunting time for answers by 60–70%.",
-    },
-    {
-      name: "HR Request Router",
-      tag: "HR · Service Desk",
-      description:
-        "Classifies incoming employee requests, drafts suggested replies, and routes each case to the right policy owner or team with full traceability.",
-      impact: "Keeps inbox load stable as headcount grows.",
-    },
-    {
-      name: "Decision Brief Generator",
-      tag: "Leadership",
-      description:
-        "Turns long threads, reports, and meeting notes into one-page briefs with options, tradeoffs, and open questions clearly laid out.",
-      impact: "Leaders see the signal, not the noise.",
-    },
-    {
-      name: "Ops Automation Agent",
-      tag: "Ops · Monitoring",
-      description:
-        "Monitors dashboards and queues, raises alerts, and triggers predefined runbooks when thresholds are crossed or patterns appear.",
-      impact: "Fewer 2 a.m. surprises, clearer ownership.",
-    },
-  ];
-
-  const loopAgents = [...agents, ...agents];
-
-  const [active, setActive] = useState<string | null>(null);
-  const controls = useAnimation();
-
-  const startMarquee = () => {
-    controls.start({
-      x: "-50%",
-      transition: { duration: 40, ease: "linear", repeat: Infinity, repeatType: "loop" },
-    });
-  };
-
-  useEffect(() => {
-    startMarquee();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <section id="agents" className="border-b border-neutral-900 bg-black w-full">
-      <div className="w-full px-4 py-16 md:px-8 md:py-20">
-        <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">Example agents</p>
-            <h2 className="mt-2 text-xl font-medium md:text-2xl">A few patterns we can adapt to your stack.</h2>
-          </div>
-        </div>
-
-        <div
-          className="relative w-full overflow-hidden py-4"
-          onMouseEnter={() => controls.stop()}
-          onMouseLeave={startMarquee}
-        >
-          <motion.div className="flex w-[200%] gap-6 px-2 md:px-4" initial={{ x: 0 }} animate={controls}>
-            {loopAgents.map((agent, index) => {
-              const key = `${agent.name}-${index}`;
-              const isActive = active === key;
-
-              return (
-                <motion.article
-                  key={key}
-                  onClick={() => setActive(isActive ? null : key)}
-                  className="relative min-w-[260px] max-w-[320px] cursor-pointer rounded-2xl border border-neutral-800 bg-gradient-to-b from-neutral-950 via-neutral-950 to-neutral-950/90 px-4 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.6)] md:px-5 md:py-5"
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.98 }}
-                  animate={isActive ? { scale: 1.06 } : { scale: 1 }}
-                  transition={{ type: "spring", stiffness: 260, damping: 22 }}
-                >
-                  <div className="pointer-events-none absolute -inset-px rounded-2xl bg-[radial-gradient(circle_at_top,_rgba(129,140,248,0.35),transparent_55%)] opacity-80" />
-                  {isActive && <div className="pointer-events-none absolute -inset-[1.5px] rounded-2xl ring-2 ring-violet-400/70" />}
-
-                  <div className="relative space-y-2">
-                    <p className="text-[10px] uppercase tracking-[0.22em] text-violet-300/80">{agent.tag}</p>
-                    <h3 className="text-sm font-medium md:text-base">{agent.name}</h3>
-                    <p className="text-xs leading-relaxed text-neutral-300">{agent.description}</p>
-                    <p className="pt-1 text-[11px] text-neutral-400">{agent.impact}</p>
-                  </div>
-                </motion.article>
-              );
-            })}
           </motion.div>
         </div>
-
-        <p className="mt-4 text-[11px] text-neutral-600">
-          Continuous gallery. Hover to pause, click a card to highlight a project you want to talk about.
-        </p>
       </div>
-    </section>
+    </div>
   );
 }
 
-/* ---------- small “silence” section ---------- */
-
-function SilentSection() {
-  return (
-    <section className="border-b border-neutral-900 bg-black">
-      <div className="mx-auto max-w-5xl px-4 py-14 md:py-20">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="text-[10px] uppercase tracking-[0.30em] text-neutral-600">A quiet truth</p>
-          <p className="mt-4 text-xl font-light leading-snug text-neutral-100 md:text-3xl">
-            Automation isn’t about speed. <br className="hidden md:block" />
-            It’s about removing uncertainty.
-          </p>
-          <p className="mt-4 text-xs leading-relaxed text-neutral-500 md:text-sm">
-            That’s why our agents ship with governance, audit trails, and clean human handoffs — so teams can trust the system under real constraints.
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- phase divider ---------- */
-
-function PhaseDivider({ label }: { label: string }) {
-  return (
-    <section className="border-b border-neutral-900 bg-black">
-      <div className="mx-auto max-w-5xl px-4 py-6">
-        <div className="flex items-center gap-4">
-          <div className="h-px flex-1 bg-neutral-900" />
-          <div className="rounded-full border border-neutral-800 bg-neutral-950/70 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-neutral-400">
-            {label}
-          </div>
-          <div className="h-px flex-1 bg-neutral-900" />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- helpers ---------- */
-
-type WorkflowNodeProps = {
-  title: string;
-  body: string;
-  strong?: boolean;
-};
-
-function WorkflowNode({ title, body, strong }: WorkflowNodeProps) {
+function DiagramNode({ title, body, strong }: { title: string; body: string; strong?: boolean }) {
   return (
     <div
-      className={
-        "relative rounded-xl border px-3 py-3 md:px-4 md:py-4 " +
-        (strong ? "border-neutral-500 bg-neutral-950" : "border-neutral-800 bg-black")
-      }
+      className={cx(
+        "rounded-2xl border p-4",
+        strong ? "border-white/20 bg-white/5" : "border-white/10 bg-black/30"
+      )}
     >
-      <p className="mb-1.5 text-[11px] uppercase tracking-[0.22em] text-neutral-400">{title}</p>
-      <p className="text-[11px] leading-relaxed text-neutral-200 md:text-xs">{body}</p>
+      <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">{title}</div>
+      <div className="mt-2 text-[13px] leading-relaxed text-neutral-300">{body}</div>
     </div>
   );
-}
-
-type MetricRowProps = {
-  label: string;
-  value: string;
-};
-
-function MetricRow({ label, value }: MetricRowProps) {
-  return (
-    <div className="flex items-center justify-between text-[10px] text-neutral-400">
-      <span>{label}</span>
-      <span className="text-[11px] font-medium text-neutral-100">{value}</span>
-    </div>
-  );
-}
-
-/* ---------- tiny utilities ---------- */
-
-function randChoice<T>(arr: T[]) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function clampInt(v: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, Math.round(v)));
-}
-
-function pad2(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-function formatTime(d: Date) {
-  // HH:MM:SS local
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
-}
-
-function makePlausibleEvent() {
-  const now = new Date();
-  const time = formatTime(now);
-
-  const samples = [
-    { label: "Intake", text: "Detected new request → assigned route + SLA." },
-    { label: "Intake", text: "Ingested ticket metadata → enriched with policy tags." },
-    { label: "Synthesis", text: "Drafted summary + linked sources for reviewer." },
-    { label: "Synthesis", text: "Compiled decision brief → options + tradeoffs." },
-    { label: "Execution", text: "Prepared update payload → awaiting approval." },
-    { label: "Execution", text: "Generated draft response → queued for human review." },
-  ] as const;
-
-  const pick = randChoice([...samples]);
-  return { time, label: pick.label, text: pick.text };
 }
