@@ -963,6 +963,7 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
     y: 0,
     inside: false,
   });
+  const [hovered, setHovered] = useState<string | null>(null);
 
   // Responsive sizing
   useEffect(() => {
@@ -983,7 +984,6 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
   const [breath, setBreath] = useState(0);
   useEffect(() => {
     const unsub = scrollYProgress.on("change", (v) => {
-      // Map 0..1 -> a nice bell curve-ish 0..1..0
       const bell = Math.sin(Math.PI * v);
       setBreath(bell);
     });
@@ -997,10 +997,9 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
     const r = el.getBoundingClientRect();
     setCursor({ x: e.clientX - r.left, y: e.clientY - r.top, inside: true });
   };
-
   const onLeave = () => setCursor((p) => ({ ...p, inside: false }));
 
-  // Tiered system (keeps it designed, not random)
+  // Tiered universe (designed, not random)
   const TIERS = useMemo(
     () => [
       { tier: 0, labels: ["Microsoft 365", "Copilot Studio", "Slack"] },
@@ -1009,30 +1008,52 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
         tier: 2,
         labels: items.filter(
           (x) =>
-            !["Microsoft 365", "Copilot Studio", "Slack", "Salesforce", "HubSpot", "ServiceNow", "Zendesk"].includes(x)
+            ![
+              "Microsoft 365",
+              "Copilot Studio",
+              "Slack",
+              "Salesforce",
+              "HubSpot",
+              "ServiceNow",
+              "Zendesk",
+            ].includes(x)
         ),
       },
     ],
     [items]
   );
 
-  // Compute base positions (ellipse orbits, width-first spread, scroll breathing)
-  const nodes = useMemo(() => {
-    const cx = size.w / 2;
-    const cy = size.h / 2;
+  // Utils
+  const padX = 96;
+  const padY = 76;
 
-    // Safe padding so nothing can ever leave the rounded card
-    const padX = 90;
-    const padY = 70;
+  const clampXY = (x: number, y: number) => ({
+    x: Math.max(padX, Math.min(size.w - padX, x)),
+    y: Math.max(padY, Math.min(size.h - padY, y)),
+  });
 
-    // Max orbit radius based on container
+  const center = useMemo(() => ({ x: size.w / 2, y: size.h / 2 }), [size]);
+
+  // Starfield points (stable)
+  const stars = useMemo(() => {
+    const count = 85;
+    const s = Array.from({ length: count }).map((_, i) => {
+      const x = (Math.sin(i * 999) * 0.5 + 0.5) * size.w;
+      const y = (Math.cos(i * 777) * 0.5 + 0.5) * size.h;
+      const r = 0.7 + ((i * 13) % 12) * 0.08;
+      const o = 0.16 + ((i * 17) % 10) * 0.03;
+      return { x, y, r, o };
+    });
+    return s;
+  }, [size.w, size.h]);
+
+  // Compute base nodes (elliptical orbits + breathing)
+  const baseNodes = useMemo(() => {
     const maxR = Math.min(size.w - padX * 2, size.h - padY * 2) * 0.56;
+    const breatheK = 1 + breath * 0.07;
 
-    // Breathing expands orbits subtly
-    const breatheK = 1 + breath * 0.06;
-
-    // Ellipse scaling uses width more than height (your request)
-    const ellipseX = 1.35;
+    // width-first ellipse
+    const ellipseX = 1.42;
     const ellipseY = 0.92;
 
     const ringR = [
@@ -1041,55 +1062,128 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
       maxR * 0.72 * breatheK,
     ];
 
-    const angleOffsets = [0.35, 0.85, 1.15];
+    const angleOffsets = [0.38, 0.86, 1.18];
 
     const all = TIERS.flatMap((tier) => {
       const labels = tier.labels;
       const n = Math.max(labels.length, 1);
-
       return labels.map((label, i) => {
         const a = (i / n) * Math.PI * 2 + angleOffsets[tier.tier];
         const r = ringR[tier.tier];
 
-        const baseX = cx + Math.cos(a) * r * ellipseX;
-        const baseY = cy + Math.sin(a) * r * ellipseY;
+        const baseX = center.x + Math.cos(a) * r * ellipseX;
+        const baseY = center.y + Math.sin(a) * r * ellipseY;
 
-        // Clamp base positions within the card (so drift/hover still safe)
-        const clampedBaseX = Math.max(padX, Math.min(size.w - padX, baseX));
-        const clampedBaseY = Math.max(padY, Math.min(size.h - padY, baseY));
+        const clamped = clampXY(baseX, baseY);
 
         return {
           label,
           tier: tier.tier,
-          baseX: clampedBaseX,
-          baseY: clampedBaseY,
-          // drift amplitude by depth (outer ring drifts more)
+          baseX: clamped.x,
+          baseY: clamped.y,
+          a,
+          // depth = outer ring feels “lighter”
           drift: 5 + tier.tier * 4,
-          delay: (i * 0.13 + tier.tier * 0.27) % 1.2,
-          phase: (i * 0.6 + tier.tier * 1.1) % (Math.PI * 2),
+          delay: (i * 0.14 + tier.tier * 0.25) % 1.1,
+          phase: (i * 0.7 + tier.tier * 1.3) % (Math.PI * 2),
         };
       });
     });
 
     return all;
-  }, [TIERS, size.w, size.h, breath]);
+  }, [TIERS, size.w, size.h, breath, center.x, center.y]);
 
-  // Helper clamp for final positions (accounts for hover gravity + drift)
-  const clampXY = (x: number, y: number) => {
-    const padX = 90;
-    const padY = 70;
-    return {
-      x: Math.max(padX, Math.min(size.w - padX, x)),
-      y: Math.max(padY, Math.min(size.h - padY, y)),
-    };
-  };
+  // Final target positions include gravity pull + drift, then clamp
+  const finalNodes = useMemo(() => {
+    const now = Date.now() / 1000;
+
+    return baseNodes.map((n, idx) => {
+      // Drift (sin/cos) - very subtle
+      const driftX = reduceMotion ? 0 : Math.sin(now * 0.75 + n.phase) * n.drift;
+      const driftY = reduceMotion ? 0 : Math.cos(now * 0.62 + n.phase) * n.drift;
+
+      // Hover gravity (lean toward cursor)
+      let pullX = 0;
+      let pullY = 0;
+      if (cursor.inside && !reduceMotion) {
+        const dx = cursor.x - n.baseX;
+        const dy = cursor.y - n.baseY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const influence = Math.max(0, 1 - dist / 420);
+
+        // inner ring heavier, outer ring more responsive
+        const depthK = n.tier === 0 ? 0.055 : n.tier === 1 ? 0.072 : 0.09;
+
+        pullX = dx * influence * depthK;
+        pullY = dy * influence * depthK;
+      }
+
+      const t = clampXY(n.baseX + driftX + pullX, n.baseY + driftY + pullY);
+
+      return { ...n, x: t.x, y: t.y, idx };
+    });
+  }, [baseNodes, cursor.inside, cursor.x, cursor.y, reduceMotion, size.w, size.h]);
+
+  // Constellation edges (connect nearby nodes, stable & subtle)
+  const edges = useMemo(() => {
+    const pts = finalNodes;
+    const maxDist = Math.min(size.w, size.h) * 0.28;
+    const E: Array<{ a: { x: number; y: number }; b: { x: number; y: number }; w: number }> = [];
+
+    for (let i = 0; i < pts.length; i++) {
+      // connect each node to its nearest 2 nodes
+      const dists: Array<{ j: number; d: number }> = [];
+      for (let j = 0; j < pts.length; j++) {
+        if (i === j) continue;
+        const dx = pts[i].x - pts[j].x;
+        const dy = pts[i].y - pts[j].y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        dists.push({ j, d });
+      }
+      dists.sort((a, b) => a.d - b.d);
+      for (const k of dists.slice(0, 2)) {
+        if (k.d < maxDist) {
+          const w = 1 - k.d / maxDist; // weight based on distance
+          E.push({ a: { x: pts[i].x, y: pts[i].y }, b: { x: pts[k.j].x, y: pts[k.j].y }, w });
+        }
+      }
+    }
+
+    return E;
+  }, [finalNodes, size.w, size.h]);
+
+  // Hover beam path (center -> hovered node)
+  const hoveredNode = hovered ? finalNodes.find((n) => n.label === hovered) : null;
+
+  const beamPath = useMemo(() => {
+    if (!hoveredNode) return null;
+
+    // Slight curve for NASA vibe
+    const cx = center.x;
+    const cy = center.y;
+    const tx = hoveredNode.x;
+    const ty = hoveredNode.y;
+
+    const mx = (cx + tx) / 2;
+    const my = (cy + ty) / 2;
+
+    // bend control point sideways based on side of screen
+    const bend = (tx > cx ? 1 : -1) * 42;
+    const ctrlX = mx + bend;
+    const ctrlY = my - 18;
+
+    return `M ${cx} ${cy} Q ${ctrlX} ${ctrlY} ${tx} ${ty}`;
+  }, [hoveredNode, center.x, center.y]);
 
   return (
     <div
       ref={ref}
       onMouseMove={onMove}
       onMouseEnter={() => setCursor((p) => ({ ...p, inside: true }))}
-      onMouseLeave={onLeave}
+      onMouseLeave={() => {
+        onLeave();
+        setHovered(null);
+      }}
       className="relative h-[440px] md:h-[520px] overflow-hidden rounded-[36px]"
       style={{ border: `1px solid ${theme.border}`, background: theme.card }}
     >
@@ -1098,41 +1192,149 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
         className="absolute -inset-32 opacity-60 blur-3xl"
         style={{
           background: `
-            radial-gradient(circle at 18% 20%, ${theme.a}26, transparent 55%),
+            radial-gradient(circle at 18% 20%, ${theme.a}28, transparent 55%),
             radial-gradient(circle at 86% 26%, ${theme.b}22, transparent 58%),
             radial-gradient(circle at 56% 88%, ${theme.c}18, transparent 62%)
           `,
         }}
       />
 
-      {/* dynamic orbit rings */}
+      {/* STARFIELD (NASA) */}
       <div className="pointer-events-none absolute inset-0">
-        {[0.34, 0.52, 0.72].map((r, i) => (
-          <motion.div
+        {stars.map((s, i) => (
+          <div
             key={i}
-            className="absolute left-1/2 top-1/2 rounded-full"
+            className="absolute rounded-full"
             style={{
-              width: `${r * 92}%`,
-              height: `${r * 66}%`,
+              left: s.x,
+              top: s.y,
+              width: s.r,
+              height: s.r,
+              opacity: s.o,
+              background: "rgba(0,0,0,0.55)",
               transform: "translate(-50%, -50%)",
-              border: `1px dashed ${theme.border}`,
+              filter: "blur(0.2px)",
             }}
+          />
+        ))}
+      </div>
+
+      {/* SVG constellation layer */}
+      <svg className="pointer-events-none absolute inset-0" width={size.w} height={size.h}>
+        {/* orbit rings */}
+        {[0.34, 0.52, 0.72].map((r, i) => (
+          <motion.ellipse
+            key={i}
+            cx={center.x}
+            cy={center.y}
+            rx={(Math.min(size.w, size.h) * 0.56) * r * 1.42}
+            ry={(Math.min(size.w, size.h) * 0.56) * r * 0.92}
+            fill="none"
+            stroke="rgba(0,0,0,0.10)"
+            strokeDasharray="4 7"
             animate={
               reduceMotion
                 ? {}
-                : {
-                    scale: [1, 1.01 + i * 0.006, 1],
-                    opacity: [0.85, 0.55, 0.85],
-                  }
+                : { opacity: [0.85, 0.45, 0.85], strokeDashoffset: [0, 60] }
             }
             transition={
               reduceMotion
                 ? { duration: 0.1 }
-                : { duration: 7 + i * 2, repeat: Infinity, ease: "easeInOut" }
+                : { duration: 10 + i * 3, repeat: Infinity, ease: "linear" }
             }
           />
         ))}
-      </div>
+
+        {/* subtle constellation links */}
+        {edges.map((e, i) => (
+          <line
+            key={i}
+            x1={e.a.x}
+            y1={e.a.y}
+            x2={e.b.x}
+            y2={e.b.y}
+            stroke={`rgba(0,0,0,${0.05 + e.w * 0.10})`}
+            strokeWidth={1}
+          />
+        ))}
+
+        {/* hover beam (center -> hovered node) */}
+        <AnimatePresence>
+          {beamPath && hoveredNode && (
+            <>
+              {/* glow underbeam */}
+              <motion.path
+                d={beamPath}
+                fill="none"
+                stroke={`rgba(0,0,0,0.10)`}
+                strokeWidth={8}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                style={{ filter: "blur(6px)" }}
+              />
+
+              {/* main beam */}
+              <motion.path
+                d={beamPath}
+                fill="none"
+                stroke={`url(#beamGrad)`}
+                strokeWidth={2.2}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              />
+
+              {/* energy pulse traveling along the beam */}
+              <motion.path
+                d={beamPath}
+                fill="none"
+                stroke={`rgba(255,255,255,0.8)`}
+                strokeWidth={1.8}
+                strokeDasharray="18 220"
+                initial={{ strokeDashoffset: 260, opacity: 0 }}
+                animate={{ strokeDashoffset: 0, opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.05, ease: "easeInOut" }}
+              />
+
+              {/* target halo */}
+              <motion.circle
+                cx={hoveredNode.x}
+                cy={hoveredNode.y}
+                r={18}
+                fill="none"
+                stroke={`rgba(0,0,0,0.12)`}
+                strokeWidth={8}
+                style={{ filter: "blur(7px)" }}
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.7 }}
+              />
+              <motion.circle
+                cx={hoveredNode.x}
+                cy={hoveredNode.y}
+                r={10}
+                fill="none"
+                stroke={`rgba(0,0,0,0.18)`}
+                strokeWidth={2}
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.7 }}
+              />
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* gradient defs */}
+        <defs>
+          <linearGradient id="beamGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor={theme.a} stopOpacity="0.55" />
+            <stop offset="55%" stopColor={theme.b} stopOpacity="0.65" />
+            <stop offset="100%" stopColor={theme.c} stopOpacity="0.55" />
+          </linearGradient>
+        </defs>
+      </svg>
 
       {/* center core */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
@@ -1148,73 +1350,47 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
           </div>
           <div className="mt-2 text-[16px] font-semibold">Integrates into</div>
           <div className="mt-1 text-[13px]" style={{ color: theme.muted }}>
-            your existing tools
+            {hovered ? hovered : "your existing stack"}
           </div>
         </div>
       </div>
 
       {/* nodes */}
-      {nodes.map((n, i) => {
-        // Hover gravity: nodes lean toward cursor if inside
-        let pullX = 0;
-        let pullY = 0;
-
-        if (cursor.inside && !reduceMotion) {
-          const dx = cursor.x - n.baseX;
-          const dy = cursor.y - n.baseY;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-
-          // Only pull when cursor is near-ish (keeps it premium, not chaotic)
-          const influence = Math.max(0, 1 - dist / 420);
-
-          // Depth affects pull (inner ring feels heavier / less responsive)
-          const depthK = n.tier === 0 ? 0.055 : n.tier === 1 ? 0.07 : 0.085;
-
-          pullX = dx * influence * depthK;
-          pullY = dy * influence * depthK;
-        }
-
-        // Drift motion (subtle)
-        const t = (Date.now() / 1000) + n.phase;
-        const driftX = reduceMotion ? 0 : Math.sin(t * 0.7) * n.drift;
-        const driftY = reduceMotion ? 0 : Math.cos(t * 0.6) * n.drift;
-
-        const target = clampXY(n.baseX + pullX + driftX, n.baseY + pullY + driftY);
-
-        return (
-          <motion.div
-            key={n.label}
-            className="absolute z-[6]"
-            initial={false}
-            animate={{ x: target.x, y: target.y }}
-            transition={{
-              type: "spring",
-              stiffness: 220,
-              damping: 26,
-              mass: 0.55,
-              delay: reduceMotion ? 0 : n.delay * 0.05,
+      {finalNodes.map((n, i) => (
+        <motion.div
+          key={n.label}
+          className="absolute z-[20]"
+          initial={false}
+          animate={{ x: n.x, y: n.y }}
+          transition={{
+            type: "spring",
+            stiffness: 220,
+            damping: 26,
+            mass: 0.55,
+            delay: reduceMotion ? 0 : n.delay * 0.05,
+          }}
+          whileHover={{ scale: 1.10 }}
+          onMouseEnter={() => setHovered(n.label)}
+          onMouseLeave={() => setHovered(null)}
+        >
+          <div
+            className="whitespace-nowrap rounded-full px-3.5 py-2 text-[11px] uppercase tracking-[0.18em] shadow-[0_18px_55px_rgba(0,0,0,0.08)]"
+            style={{
+              background: "rgba(255,255,255,0.74)",
+              border: `1px solid ${theme.border}`,
+              color: theme.muted,
             }}
-            whileHover={{ scale: 1.09 }}
           >
-            <div
-              className="whitespace-nowrap rounded-full px-3.5 py-2 text-[11px] uppercase tracking-[0.18em] shadow-[0_18px_50px_rgba(0,0,0,0.06)]"
+            <span
+              className="mr-2 inline-block h-2 w-2 rounded-full"
               style={{
-                background: "rgba(255,255,255,0.72)",
-                border: `1px solid ${theme.border}`,
-                color: theme.muted,
+                background: n.tier === 0 ? theme.a : n.tier === 1 ? theme.b : theme.c,
               }}
-            >
-              <span
-                className="mr-2 inline-block h-2 w-2 rounded-full"
-                style={{
-                  background: n.tier === 0 ? theme.a : n.tier === 1 ? theme.b : theme.c,
-                }}
-              />
-              {n.label}
-            </div>
-          </motion.div>
-        );
-      })}
+            />
+            {n.label}
+          </div>
+        </motion.div>
+      ))}
     </div>
   );
 }
