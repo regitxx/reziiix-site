@@ -1,26 +1,54 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  AnimatePresence,
-  motion,
-  useReducedMotion,
-  useScroll,
-  useTransform,
-} from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
-type Accent = {
+type Theme = {
   name: string;
+  bg: string;
+  ink: string;
+  muted: string;
+  card: string;
+  border: string;
   a: string;
   b: string;
   c: string;
 };
 
-const ACCENTS: Accent[] = [
-  { name: "Ultraviolet", a: "#6D28D9", b: "#0EA5E9", c: "#F97316" },
-  { name: "Electric Lime", a: "#65A30D", b: "#14B8A6", c: "#2563EB" },
-  { name: "Hot Pink", a: "#DB2777", b: "#F59E0B", c: "#22C55E" },
-  { name: "Ink Blue", a: "#1D4ED8", b: "#7C3AED", c: "#111827" },
+const THEMES: Theme[] = [
+  {
+    name: "Studio Bright",
+    bg: "#F7F7F4",
+    ink: "#0B0B0C",
+    muted: "rgba(11,11,12,0.62)",
+    card: "rgba(255,255,255,0.72)",
+    border: "rgba(11,11,12,0.10)",
+    a: "#5B21B6",
+    b: "#0284C7",
+    c: "#F97316",
+  },
+  {
+    name: "Clean Mint",
+    bg: "#F5FAF7",
+    ink: "#07110B",
+    muted: "rgba(7,17,11,0.62)",
+    card: "rgba(255,255,255,0.72)",
+    border: "rgba(7,17,11,0.10)",
+    a: "#16A34A",
+    b: "#0F766E",
+    c: "#1D4ED8",
+  },
+  {
+    name: "Punch",
+    bg: "#FBF7FA",
+    ink: "#12060F",
+    muted: "rgba(18,6,15,0.62)",
+    card: "rgba(255,255,255,0.70)",
+    border: "rgba(18,6,15,0.10)",
+    a: "#DB2777",
+    b: "#F59E0B",
+    c: "#22C55E",
+  },
 ];
 
 function cx(...parts: Array<string | false | null | undefined>) {
@@ -30,96 +58,177 @@ function cx(...parts: Array<string | false | null | undefined>) {
 function scrollToId(id: string) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  const y = el.getBoundingClientRect().top + window.scrollY - 84;
+  window.scrollTo({ top: y, behavior: "smooth" });
 }
+
+function clamp(n: number, a: number, b: number) {
+  return Math.max(a, Math.min(b, n));
+}
+
+/** --------- MAIN --------- */
 
 export default function HomePage() {
   const reduceMotion = useReducedMotion();
 
-  const [accentIdx, setAccentIdx] = useState(0);
-  const accent = ACCENTS[accentIdx % ACCENTS.length];
+  const [t, setT] = useState(0);
+  const theme = THEMES[t % THEMES.length];
 
-  // cursor halo (editorial subtle)
-  const [cursor, setCursor] = useState({ x: 0, y: 0, active: false });
+  // subtle cursor glow (not a “feature”, just polish)
+  const [cursor, setCursor] = useState({ x: 0, y: 0, on: false });
   useEffect(() => {
-    const onMove = (e: MouseEvent) => setCursor({ x: e.clientX, y: e.clientY, active: true });
-    const onLeave = () => setCursor((p) => ({ ...p, active: false }));
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseleave", onLeave);
+    const mm = (e: MouseEvent) => setCursor({ x: e.clientX, y: e.clientY, on: true });
+    const leave = () => setCursor((p) => ({ ...p, on: false }));
+    window.addEventListener("mousemove", mm);
+    window.addEventListener("mouseleave", leave);
     return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseleave", onLeave);
+      window.removeEventListener("mousemove", mm);
+      window.removeEventListener("mouseleave", leave);
     };
   }, []);
 
-  const micro = useMemo(
+  // active nav highlight
+  const [active, setActive] = useState("top");
+  useEffect(() => {
+    const ids = ["top", "what", "ecosystem", "offers", "contact"];
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting && e.target.id) setActive(e.target.id);
+        });
+      },
+      { threshold: 0.55 }
+    );
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) obs.observe(el);
+    });
+    return () => obs.disconnect();
+  }, []);
+
+  // modal for “capabilities”
+  const [open, setOpen] = useState<null | Capability>(null);
+
+  const capabilities: Capability[] = useMemo(
     () => [
-      "A studio for serious systems.",
-      "A premium build quality mindset.",
-      "Calm automation. Clear control.",
-      "Designed to be used, not admired.",
-      "Your internal AI factory.",
+      {
+        title: "Automation Systems",
+        subtitle: "End-to-end capability, not a demo.",
+        body: "We design and ship automation that behaves like real software: measurable, maintainable, and owned by your team over time.",
+        bullets: ["Production-grade build", "Clear control & observability", "Integrates into your tools"],
+        tag: "Core",
+      },
+      {
+        title: "Enterprise Governance",
+        subtitle: "Built for serious constraints.",
+        body: "Security posture, boundaries, approvals, auditability. We design for the reality of enterprise environments from day one.",
+        bullets: ["Policy-aligned behavior", "Audit trail mindset", "Scoped permissions"],
+        tag: "Trust",
+      },
+      {
+        title: "Integration Engineering",
+        subtitle: "Where work already lives.",
+        body: "M365, Slack, email, CRMs, service desks, internal APIs. We don’t force new tools—your stack stays the interface.",
+        bullets: ["M365 / Slack / Email", "CRM + service desk", "Internal API connectors"],
+        tag: "Stack",
+      },
+      {
+        title: "Enablement",
+        subtitle: "Your team can learn it too.",
+        body: "If you want in-house capability: we can run workshops and build alongside your team—so you’re not dependent on us.",
+        bullets: ["Copilot Studio / M365 agents", "Workshops + templates", "Best-practice governance"],
+        tag: "Optional",
+      },
     ],
     []
   );
-  const [microIdx, setMicroIdx] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(() => setMicroIdx((i) => (i + 1) % micro.length), 2200);
-    return () => window.clearInterval(id);
-  }, [micro.length]);
+
+  const integrations = useMemo(
+    () => [
+      "Microsoft 365",
+      "Copilot Studio",
+      "Teams",
+      "Outlook",
+      "SharePoint",
+      "Slack",
+      "Notion",
+      "Google Workspace",
+      "HubSpot",
+      "Salesforce",
+      "ServiceNow",
+      "Jira",
+      "Zendesk",
+      "Custom APIs",
+    ],
+    []
+  );
 
   return (
     <main
+      style={{ background: theme.bg, color: theme.ink }}
       className="min-h-screen"
-      style={{
-        background: "#F7F7F4",
-        color: "#0A0A0A",
-      }}
     >
-      {/* cursor halo */}
+      {/* cursor ambient */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-[5]">
         <motion.div
           animate={{
-            opacity: cursor.active ? 1 : 0,
-            x: cursor.x - 220,
-            y: cursor.y - 220,
+            opacity: cursor.on ? 1 : 0,
+            x: cursor.x - 240,
+            y: cursor.y - 240,
           }}
-          transition={{ type: "spring", stiffness: 220, damping: 30, mass: 0.5 }}
-          className="absolute h-[440px] w-[440px] rounded-full blur-3xl"
+          transition={{ type: "spring", stiffness: 220, damping: 30, mass: 0.6 }}
+          className="absolute h-[480px] w-[480px] rounded-full blur-3xl"
           style={{
-            background: `radial-gradient(circle at 30% 30%, ${accent.a}22, transparent 60%),
-                         radial-gradient(circle at 70% 40%, ${accent.b}22, transparent 60%),
-                         radial-gradient(circle at 50% 80%, ${accent.c}18, transparent 62%)`,
+            background: `radial-gradient(circle at 30% 30%, ${theme.a}22, transparent 60%),
+                         radial-gradient(circle at 70% 40%, ${theme.b}22, transparent 60%),
+                         radial-gradient(circle at 50% 80%, ${theme.c}16, transparent 62%)`,
           }}
         />
       </div>
 
-      {/* top chrome */}
-      <header className="sticky top-0 z-50 border-b border-black/10 bg-[#F7F7F4]/85 backdrop-blur-xl">
+      {/* Top nav */}
+      <header
+        className="sticky top-0 z-50 backdrop-blur-xl"
+        style={{ background: `${theme.bg}cc`, borderBottom: `1px solid ${theme.border}` }}
+      >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <button onClick={() => scrollToId("top")} className="flex items-center gap-3">
             <div
-              className="h-9 w-9 rounded-xl border border-black/10"
-              style={{ background: `linear-gradient(135deg, ${accent.a}22, ${accent.b}18)` }}
+              className="h-9 w-9 rounded-xl"
+              style={{
+                border: `1px solid ${theme.border}`,
+                background: `linear-gradient(135deg, ${theme.a}22, ${theme.b}18)`,
+              }}
             />
             <div className="leading-none text-left">
-              <div className="text-[11px] uppercase tracking-[0.38em]">REZIIIX</div>
-              <div className="mt-1 text-[11px] text-black/55">AI automation studio</div>
+              <div className="text-[11px] uppercase tracking-[0.40em]">REZIIIX</div>
+              <div className="mt-1 text-[11px]" style={{ color: theme.muted }}>
+                AI automation studio
+              </div>
             </div>
           </button>
 
           <nav className="hidden items-center gap-1 md:flex">
-            <Nav onClick={() => scrollToId("film")}>Film</Nav>
-            <Nav onClick={() => scrollToId("capabilities")}>Capabilities</Nav>
-            <Nav onClick={() => scrollToId("proof")}>Proof</Nav>
-            <Nav onClick={() => scrollToId("contact")}>Contact</Nav>
+            <NavBtn theme={theme} active={active === "what"} onClick={() => scrollToId("what")}>
+              What
+            </NavBtn>
+            <NavBtn theme={theme} active={active === "ecosystem"} onClick={() => scrollToId("ecosystem")}>
+              Ecosystem
+            </NavBtn>
+            <NavBtn theme={theme} active={active === "offers"} onClick={() => scrollToId("offers")}>
+              Offers
+            </NavBtn>
+            <NavBtn theme={theme} active={active === "contact"} onClick={() => scrollToId("contact")}>
+              Contact
+            </NavBtn>
           </nav>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setAccentIdx((i) => i + 1)}
-              className="rounded-full border border-black/10 bg-white/60 px-3 py-2 text-[12px] text-black/70 hover:bg-white transition"
+              onClick={() => setT((x) => x + 1)}
+              className="rounded-full px-3 py-2 text-[12px] transition"
+              style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
             >
               Theme
             </button>
@@ -127,722 +236,691 @@ export default function HomePage() {
               type="button"
               onClick={() => scrollToId("contact")}
               className="rounded-full px-4 py-2 text-[12px] font-semibold text-white transition"
-              style={{ background: accent.a }}
+              style={{ background: theme.a }}
             >
-              Start a pilot
+              Start
             </button>
           </div>
         </div>
       </header>
 
-      {/* HERO */}
+      {/* HERO — “poster” layout */}
       <section id="top" className="relative">
         <div className="mx-auto max-w-6xl px-4 py-12 md:py-16">
-          <div className="grid gap-10 md:grid-cols-[1.1fr,0.9fr] md:items-end">
-            <motion.div
-              initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
+          <div
+            className="relative overflow-hidden rounded-[36px] p-7 md:p-10"
+            style={{ border: `1px solid ${theme.border}`, background: theme.card }}
+          >
+            {/* top-right stamp */}
+            <div
+              className="absolute right-6 top-6 hidden md:flex items-center gap-2 rounded-full px-3 py-2"
+              style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.6)" }}
+            >
+              <span className="inline-block h-2 w-2 rounded-full" style={{ background: theme.b }} />
+              <span className="text-[10px] uppercase tracking-[0.32em]" style={{ color: theme.muted }}>
+                Studio build
+              </span>
+            </div>
+
+            {/* big type */}
+            <motion.h1
+              initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: reduceMotion ? 0.1 : 0.75, ease: [0.2, 1, 0.2, 1] }}
+              className="text-[clamp(2.8rem,6.0vw,5.6rem)] font-semibold leading-[0.92] tracking-[-0.04em]"
             >
-              <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1 text-[11px] text-black/70">
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: accent.a }} />
-                <span className="uppercase tracking-[0.26em]">Editorial business design</span>
-              </div>
+              Automation, built like{" "}
+              <span style={{ color: theme.a }}>a product</span>.
+            </motion.h1>
 
-              <h1 className="mt-6 text-[clamp(3.0rem,6.0vw,5.4rem)] font-semibold leading-[0.92] tracking-[-0.03em]">
-                Build
-                <span className="block font-light">calm power.</span>
-              </h1>
+            <div className="mt-6 grid gap-8 md:grid-cols-[1.05fr,0.95fr] md:items-end">
+              <div>
+                <p className="max-w-xl text-[15px] leading-relaxed" style={{ color: theme.muted }}>
+                  REZIIIX designs and ships automation systems for businesses that want quality, control,
+                  and long-term ownership — not just experiments.
+                </p>
 
-              <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-black/70">
-                REZIIIX is a studio that designs and ships modern automation systems with premium UX,
-                governance, and integration-first thinking.
-              </p>
-
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <button
-                  onClick={() => scrollToId("film")}
-                  className="rounded-2xl border border-black/10 bg-white/70 px-6 py-3 text-sm text-black/75 hover:bg-white transition"
-                >
-                  Watch the film
-                </button>
-                <button
-                  onClick={() => scrollToId("contact")}
-                  className="rounded-2xl px-6 py-3 text-sm font-semibold text-white transition"
-                  style={{ background: accent.a }}
-                >
-                  Start a pilot
-                </button>
-              </div>
-
-              <div className="mt-10 h-9 overflow-hidden">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={microIdx}
-                    initial={{ opacity: 0, y: 18 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -18 }}
-                    transition={{ duration: reduceMotion ? 0.1 : 0.42, ease: "easeOut" }}
-                    className="text-[13px] text-black/60"
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => scrollToId("contact")}
+                    className="rounded-2xl px-6 py-3 text-sm font-semibold text-white transition"
+                    style={{ background: theme.a }}
                   >
-                    <span className="mr-2 inline-block h-[10px] w-[10px] rounded-sm" style={{ background: accent.b }} />
-                    {micro[microIdx]}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </motion.div>
+                    Talk to REZIIIX
+                  </button>
+                  <button
+                    onClick={() => scrollToId("what")}
+                    className="rounded-2xl px-6 py-3 text-sm transition"
+                    style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)", color: theme.ink }}
+                  >
+                    See what we build
+                  </button>
+                </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: reduceMotion ? 0 : 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduceMotion ? 0.1 : 0.85, ease: [0.2, 1, 0.2, 1], delay: 0.05 }}
-              className="relative"
-            >
+                <div className="mt-8 flex flex-wrap gap-2">
+                  <Pill theme={theme}>Enterprise-friendly</Pill>
+                  <Pill theme={theme}>Integration-first</Pill>
+                  <Pill theme={theme}>Governance-minded</Pill>
+                  <Pill theme={theme}>Workshops available</Pill>
+                </div>
+              </div>
+
+              {/* right: visual “brand block” (no workflow UI) */}
               <div
-                className="absolute -inset-6 rounded-[36px] blur-2xl opacity-50"
-                style={{
-                  background: `radial-gradient(circle at 30% 30%, ${accent.a}22, transparent 55%),
-                               radial-gradient(circle at 70% 40%, ${accent.b}22, transparent 60%),
-                               radial-gradient(circle at 50% 80%, ${accent.c}18, transparent 62%)`,
-                }}
-              />
-              <div className="relative overflow-hidden rounded-[28px] border border-black/10 bg-white/70 p-6 backdrop-blur-xl">
-                <div className="flex items-start justify-between gap-6">
-                  <div>
-                    <div className="text-[11px] uppercase tracking-[0.34em] text-black/50">In one line</div>
-                    <div className="mt-3 text-[15px] font-semibold leading-tight">
-                      You own an AI factory inside your company.
-                    </div>
-                    <div className="mt-2 text-[13px] leading-relaxed text-black/65">
-                      We design it, ship it, and help you scale it like real software.
-                    </div>
+                className="relative overflow-hidden rounded-[28px] p-5"
+                style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.62)" }}
+              >
+                <div
+                  className="absolute -inset-16 opacity-60 blur-2xl"
+                  style={{
+                    background: `radial-gradient(circle at 20% 15%, ${theme.a}35, transparent 55%),
+                                 radial-gradient(circle at 80% 25%, ${theme.b}30, transparent 55%),
+                                 radial-gradient(circle at 45% 90%, ${theme.c}22, transparent 60%)`,
+                  }}
+                />
+                <div className="relative">
+                  <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
+                    In one line
                   </div>
-                  <span
-                    className="rounded-full border border-black/10 bg-white px-3 py-1 text-[11px] font-semibold"
-                    style={{ color: accent.a }}
-                  >
-                    REZIIIX
-                  </span>
-                </div>
+                  <div className="mt-3 text-[16px] font-semibold leading-snug">
+                    You own an AI factory inside your company.
+                  </div>
+                  <div className="mt-2 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
+                    We build the capability. You keep the control.
+                  </div>
 
-                <div className="mt-6 grid gap-3 md:grid-cols-2">
-                  <MiniTile accent={accent} k="Style" v="Minimal, premium, usable." />
-                  <MiniTile accent={accent} k="Output" v="A running system." />
-                  <MiniTile accent={accent} k="Focus" v="One workflow first." />
-                  <MiniTile accent={accent} k="Scale" v="Patterns, not chaos." />
+                  <div className="mt-6 grid grid-cols-2 gap-3">
+                    <MiniStat theme={theme} k="Build" v="Systems" />
+                    <MiniStat theme={theme} k="Style" v="Calm" />
+                    <MiniStat theme={theme} k="Fit" v="SME → Enterprise" />
+                    <MiniStat theme={theme} k="Output" v="Production" />
+                  </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
+
+            {/* bottom stripe */}
+            <div className="mt-9 flex items-center justify-between gap-4 border-t pt-5"
+                 style={{ borderColor: theme.border, color: theme.muted }}>
+              <span className="text-[11px] uppercase tracking-[0.28em]">REZIIIX</span>
+              <span className="text-[11px] uppercase tracking-[0.28em]">Automation studio</span>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* FILM STRIP SPLIT-SCREEN */}
-      <FilmSection accent={accent} />
-
-      {/* CAPABILITIES */}
-      <section id="capabilities" className="border-t border-black/10">
+      {/* WHAT — bento capabilities (opens modal) */}
+      <section id="what" className="border-t" style={{ borderColor: theme.border }}>
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-10 md:grid-cols-[0.95fr,1.05fr] md:items-start">
             <div>
-              <div className="text-[11px] uppercase tracking-[0.34em] text-black/50">Capabilities</div>
+              <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
+                What we build
+              </div>
               <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                Product quality,
-                <span className="block font-light">system seriousness.</span>
+                Capabilities you can{" "}
+                <span style={{ color: theme.b }}>deploy</span>.
               </h2>
-              <p className="mt-6 max-w-md text-[14px] leading-relaxed text-black/70">
-                We build automation like premium product teams: clean UX, clear control, integration-first.
+              <p className="mt-6 max-w-md text-[14px] leading-relaxed" style={{ color: theme.muted }}>
+                Click any tile. This is not a platform UI — it’s a portfolio of what REZIIIX ships.
               </p>
 
-              <div className="mt-8 flex flex-wrap items-center gap-2">
-                <Tag accent={accent}>Integration-first</Tag>
-                <Tag accent={accent}>Governance-ready</Tag>
-                <Tag accent={accent}>Human-grade UX</Tag>
-                <Tag accent={accent}>Enterprise-safe</Tag>
-              </div>
-
-              <div className="mt-10 rounded-3xl border border-black/10 bg-white/70 p-6">
-                <div className="text-[11px] uppercase tracking-[0.28em] text-black/50">Optional</div>
-                <div className="mt-3 text-[14px] font-semibold">Microsoft-native builds</div>
-                <div className="mt-2 text-[13px] leading-relaxed text-black/65">
-                  If needed: we also develop Copilot Studio / M365 agents, and can run a workshop to enable your team.
+              <div className="mt-8 rounded-3xl p-6"
+                   style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
+                <div className="text-[11px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
+                  Also available
+                </div>
+                <div className="mt-3 text-[14px] font-semibold">Copilot Studio / M365 agents</div>
+                <div className="mt-2 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
+                  If needed: we build Microsoft-native agents and can run an enablement workshop for your team.
                 </div>
               </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <BigCard accent={accent} title="Quiet automation" body="The best system feels invisible: less friction, fewer handoffs." foot="Less repetition • more focus" />
-              <BigCard accent={accent} title="Governed behavior" body="Clear boundaries, approvals, observability — built in, not bolted on." foot="Audit-friendly • controlled" />
-              <BigCard accent={accent} title="Integration as design" body="M365, Slack, email, service desks, CRMs, internal APIs — where work already lives." foot="No new platform to force" />
-              <BigCard accent={accent} title="Pilot → production" body="A focused pilot, then reusable patterns to scale across teams." foot="Small start • scalable fabric" />
+              {capabilities.map((c) => (
+                <button
+                  key={c.title}
+                  onClick={() => setOpen(c)}
+                  className="group text-left rounded-[28px] p-6 transition"
+                  style={{ border: `1px solid ${theme.border}`, background: theme.card }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.32em]" style={{ color: theme.muted }}>
+                        {c.tag}
+                      </div>
+                      <div className="mt-3 text-[16px] font-semibold">{c.title}</div>
+                      <div className="mt-2 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
+                        {c.subtitle}
+                      </div>
+                    </div>
+                    <span
+                      className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                      style={{ color: theme.a, border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
+                    >
+                      →
+                    </span>
+                  </div>
+
+                  <div className="mt-6 h-[10px] w-full rounded-full overflow-hidden"
+                       style={{ background: "rgba(0,0,0,0.06)" }}>
+                    <div
+                      className="h-full rounded-full transition-all group-hover:w-[88%] w-[62%]"
+                      style={{ background: `linear-gradient(90deg, ${theme.a}, ${theme.b})` }}
+                    />
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* PROOF */}
-      <section id="proof" className="border-t border-black/10">
+      {/* ECOSYSTEM — integration “universe” (no workflow, no steps) */}
+      <section id="ecosystem" className="border-t" style={{ borderColor: theme.border }}>
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-10 md:grid-cols-[1fr,1fr] md:items-center">
             <div>
-              <div className="text-[11px] uppercase tracking-[0.34em] text-black/50">Proof</div>
+              <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
+                Ecosystem
+              </div>
               <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                Serious teams
-                <span className="block font-light">want seriousness.</span>
+                Built to live in your{" "}
+                <span style={{ color: theme.c }}>stack</span>.
               </h2>
-              <p className="mt-6 max-w-md text-[14px] leading-relaxed text-black/70">
-                We ship real systems: scoped, tested, measurable, maintainable — designed for long-term ownership.
+              <p className="mt-6 max-w-md text-[14px] leading-relaxed" style={{ color: theme.muted }}>
+                We integrate into the tools you already use. No new “platform adoption” problem.
               </p>
-
-              <div className="mt-8 grid gap-3">
-                <ProofLine accent={accent} k="Approach" v="Start with one workflow. Make it real." />
-                <ProofLine accent={accent} k="Output" v="A running system your team can own." />
-                <ProofLine accent={accent} k="Standard" v="Clear controls + audit trail." />
+              <div className="mt-8 flex flex-wrap gap-2">
+                <Pill theme={theme}>M365</Pill>
+                <Pill theme={theme}>Copilot Studio</Pill>
+                <Pill theme={theme}>Slack</Pill>
+                <Pill theme={theme}>Service desk</Pill>
+                <Pill theme={theme}>CRM</Pill>
+                <Pill theme={theme}>Internal APIs</Pill>
               </div>
             </div>
 
-            <div className="rounded-[30px] border border-black/10 bg-white/70 p-7">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-[11px] uppercase tracking-[0.28em] text-black/50">A pilot looks like</div>
-                  <div className="mt-3 text-[15px] font-semibold leading-tight">
-                    2–4 weeks to a production-grade pilot.
-                  </div>
-                  <div className="mt-2 text-[13px] leading-relaxed text-black/65">
-                    One workflow. Integrated. Governed. Observable. Then expand by pattern.
-                  </div>
-                </div>
-                <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-[11px] font-semibold text-black/70">
-                  Pilot
-                </span>
-              </div>
+            <IntegrationUniverse theme={theme} items={integrations} />
+          </div>
+        </div>
+      </section>
 
-              <div className="mt-6 grid gap-3">
-                <Bullet accent={accent}>Discovery + scope → measurable definition</Bullet>
-                <Bullet accent={accent}>Build → integrate → harden</Bullet>
-                <Bullet accent={accent}>Run with humans in the loop</Bullet>
-                <Bullet accent={accent}>Expand to adjacent workflows</Bullet>
+      {/* OFFERS — business clear */}
+      <section id="offers" className="border-t" style={{ borderColor: theme.border }}>
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <div className="grid gap-10 md:grid-cols-[0.95fr,1.05fr] md:items-start">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
+                Offers
               </div>
+              <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
+                Choose how you want to{" "}
+                <span style={{ color: theme.a }}>engage</span>.
+              </h2>
+              <p className="mt-6 max-w-md text-[14px] leading-relaxed" style={{ color: theme.muted }}>
+                Clear packages. No platform fluff.
+              </p>
+            </div>
 
-              <div className="mt-6 rounded-2xl border border-black/10 bg-white p-4">
-                <div className="text-[11px] uppercase tracking-[0.28em] text-black/50">Signal</div>
-                <div className="mt-2 text-[13px] text-black/70">
-                  If you care about quality, control, and ownership — we’ll work well together.
-                </div>
-              </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <OfferCard
+                theme={theme}
+                title="Pilot Build"
+                price="Best start"
+                body="One focused automation system shipped into your environment."
+                bullets={["Fast scope", "Production-quality", "Measurable outcome"]}
+                badge="Popular"
+              />
+              <OfferCard
+                theme={theme}
+                title="Scale Program"
+                price="For teams"
+                body="Multiple systems + stronger integrations + operating rhythm."
+                bullets={["Reusable patterns", "Monitoring mindset", "Team rollout support"]}
+                badge="Scale"
+              />
+              <OfferCard
+                theme={theme}
+                title="Workshop"
+                price="Enablement"
+                body="Teach your team how to build safely (Copilot Studio / M365)."
+                bullets={["Hands-on", "Templates", "Governance included"]}
+                badge="Optional"
+              />
             </div>
           </div>
         </div>
       </section>
 
       {/* CONTACT */}
-      <section id="contact" className="border-t border-black/10">
+      <section id="contact" className="border-t" style={{ borderColor: theme.border }}>
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-10 md:grid-cols-[1.05fr,0.95fr] md:items-start">
             <div>
-              <div className="text-[11px] uppercase tracking-[0.34em] text-black/50">Engage</div>
+              <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
+                Contact
+              </div>
               <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                Bring one
-                <span className="block font-light">messy process.</span>
+                Tell us what you want to{" "}
+                <span style={{ color: theme.b }}>improve</span>.
               </h2>
-              <p className="mt-6 max-w-md text-[14px] leading-relaxed text-black/70">
-                We’ll reply with a concrete pilot plan: scope, integrations, guardrails, timeline.
+              <p className="mt-6 max-w-md text-[14px] leading-relaxed" style={{ color: theme.muted }}>
+                Email is enough. We’ll respond with a concrete plan.
               </p>
 
-              <div className="mt-8 rounded-3xl border border-black/10 bg-white/70 p-6">
-                <div className="text-[11px] uppercase tracking-[0.28em] text-black/50">Email</div>
+              <div className="mt-8 rounded-3xl p-6"
+                   style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
+                <div className="text-[11px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
+                  Email
+                </div>
                 <div className="mt-2 text-[16px] font-semibold">hello@reziiix.com</div>
-                <div className="mt-2 text-[13px] text-black/65">
-                  Keep it short: “Here’s the workflow, where it lives, and what good looks like.”
+                <div className="mt-2 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
+                  Keep it short: what you want, where it lives (tools), and what success looks like.
+                </div>
+
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <button
+                    className="rounded-2xl px-6 py-3 text-sm font-semibold text-white"
+                    style={{ background: theme.a }}
+                    onClick={() => {
+                      const subject = encodeURIComponent("REZIIIX — inquiry");
+                      const body = encodeURIComponent(
+                        `Hi REZIIIX,\n\nWe want to improve:\n- Goal:\n- Tools involved:\n- Constraints (security/compliance):\n- Timeline:\n\nThanks!`
+                      );
+                      window.location.href = `mailto:hello@reziiix.com?subject=${subject}&body=${body}`;
+                    }}
+                  >
+                    Email template
+                  </button>
+                  <button
+                    className="rounded-2xl px-6 py-3 text-sm"
+                    style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
+                    onClick={() => scrollToId("top")}
+                  >
+                    Back to top
+                  </button>
                 </div>
               </div>
 
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <button
-                  className="rounded-2xl px-6 py-3 text-sm font-semibold text-white"
-                  style={{ background: accent.a }}
-                  onClick={() => {
-                    const subject = encodeURIComponent("Pilot request — REZIIIX");
-                    const body = encodeURIComponent(
-                      `Hi REZIIIX,\n\nWe want to pilot:\n- Workflow:\n- Where it lives (tools):\n- Success metric:\n\nThanks!`
-                    );
-                    window.location.href = `mailto:hello@reziiix.com?subject=${subject}&body=${body}`;
-                  }}
-                >
-                  Email with template
-                </button>
-                <button
-                  className="rounded-2xl border border-black/10 bg-white/60 px-6 py-3 text-sm text-black/75 hover:bg-white transition"
-                  onClick={() => scrollToId("top")}
-                >
-                  Back to top
-                </button>
-              </div>
-
-              <div className="mt-10 text-[11px] uppercase tracking-[0.22em] text-black/45">
+              <div className="mt-10 text-[11px] uppercase tracking-[0.22em]" style={{ color: theme.muted }}>
                 © {new Date().getFullYear()} REZIIIX
               </div>
             </div>
 
-            <div className="rounded-[30px] border border-black/10 bg-white/70 p-7">
-              <div className="text-[11px] uppercase tracking-[0.28em] text-black/50">Quick note</div>
-              <div className="mt-3 text-[15px] font-semibold leading-tight">Send a workflow in 30 seconds.</div>
+            <div className="rounded-[30px] p-7"
+                 style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
+              <div className="text-[11px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
+                Quick note
+              </div>
+              <div className="mt-3 text-[15px] font-semibold leading-tight">
+                Send a message in 30 seconds.
+              </div>
 
               <div className="mt-6 space-y-3">
-                <Input placeholder="Name" />
-                <Input placeholder="Work email" />
-                <Textarea placeholder="Describe the process you want to improve…" />
+                <Input theme={theme} placeholder="Name" />
+                <Input theme={theme} placeholder="Work email" />
+                <Textarea theme={theme} placeholder="What do you want to improve?" />
                 <button
                   type="button"
                   className="w-full rounded-2xl px-4 py-3 text-sm font-semibold text-white"
-                  style={{ background: accent.b }}
+                  style={{ background: theme.b }}
                 >
                   Send (static)
                 </button>
-                <div className="text-[11px] text-black/55">
-                  We can wire this to your CRM later (or replace it with an intake agent).
+                <div className="text-[11px]" style={{ color: theme.muted }}>
+                  We can wire this to a CRM later if you want.
                 </div>
               </div>
 
-              <div className="mt-7 flex items-center justify-between rounded-2xl border border-black/10 bg-white px-4 py-3">
-                <span className="text-[10px] uppercase tracking-[0.28em] text-black/50">REZIIIX</span>
-                <span className="text-[10px] uppercase tracking-[0.28em]" style={{ color: accent.a }}>
-                  Studio system
+              <div className="mt-7 flex items-center justify-between rounded-2xl px-4 py-3"
+                   style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}>
+                <span className="text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
+                  REZIIIX
+                </span>
+                <span className="text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.a }}>
+                  Studio build
                 </span>
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      <CapabilityModal theme={theme} open={open} onClose={() => setOpen(null)} />
     </main>
   );
 }
 
-/* ----------------- FILM SECTION ----------------- */
+/** --------- COMPONENTS --------- */
 
-function FilmSection({ accent }: { accent: Accent }) {
-  const reduceMotion = useReducedMotion();
-
-  const ref = useRef<HTMLDivElement | null>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start start", "end end"],
-  });
-
-  // Split layout: left text pinned, right film moves.
-  // Film moves vertically as you scroll through this section.
-  const filmY = useTransform(scrollYProgress, [0, 1], ["0%", "-52%"]);
-  const titleX = useTransform(scrollYProgress, [0, 1], ["0%", "-18%"]);
-  const titleSkew = useTransform(scrollYProgress, [0, 1], [0, -7]);
-
-  // A subtle “frame counter”
-  const counter = useTransform(scrollYProgress, [0, 1], [1, 6]);
-
-  const frames = useMemo(
-    () => [
-      {
-        label: "Frame 01 — Quiet",
-        headline: "Reduce friction.",
-        body: "The best automation doesn’t scream. It disappears into daily work.",
-      },
-      {
-        label: "Frame 02 — Control",
-        headline: "Keep ownership.",
-        body: "Systems should be governed, inspectable, and built for long-term trust.",
-      },
-      {
-        label: "Frame 03 — Integration",
-        headline: "Stay in-tool.",
-        body: "The interface your team loves is the one they already use.",
-      },
-      {
-        label: "Frame 04 — Quality",
-        headline: "Ship like product.",
-        body: "Beautiful UX + serious engineering. Otherwise it’s just a demo.",
-      },
-      {
-        label: "Frame 05 — Scale",
-        headline: "Expand by pattern.",
-        body: "Start with one workflow. Then replicate the fabric across teams.",
-      },
-      {
-        label: "Frame 06 — Calm power",
-        headline: "Make work lighter.",
-        body: "Less repetition. More focus. More time for actual decisions.",
-      },
-    ],
-    []
-  );
-
-  return (
-    <section id="film" className="border-t border-black/10">
-      {/* Tall section so scroll has room */}
-      <div ref={ref} className="mx-auto max-w-6xl px-4 py-14">
-        <div className="grid gap-10 md:grid-cols-[0.95fr,1.05fr]">
-          {/* LEFT — pinned editorial copy */}
-          <div className="md:sticky md:top-24 h-fit">
-            <div className="text-[11px] uppercase tracking-[0.34em] text-black/50">Film</div>
-
-            <motion.h2
-              style={{ x: titleX, skewX: titleSkew as any }}
-              className="mt-5 text-[clamp(2.1rem,4.4vw,3.6rem)] font-semibold leading-[0.98] tracking-[-0.03em]"
-            >
-              A campaign
-              <span className="block font-light">for systems.</span>
-            </motion.h2>
-
-            <p className="mt-6 max-w-md text-[14px] leading-relaxed text-black/70">
-              Scroll to “watch”. This isn’t a dashboard. It’s an editorial story in frames — the vibe of a luxury brand
-              but for business systems.
-            </p>
-
-            <div className="mt-8 rounded-3xl border border-black/10 bg-white/70 p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-[11px] uppercase tracking-[0.28em] text-black/50">Now showing</div>
-                  <div className="mt-2 text-[14px] font-semibold">REZIIIX / Studio Film</div>
-                </div>
-                <div className="rounded-full border border-black/10 bg-white px-3 py-1 text-[11px] font-semibold text-black/70">
-                  <motion.span>
-                    {/*
-                      We can't directly render MotionValue here without subscription,
-                      so we show an elegant static label + moving indicator below.
-                    */}
-                    6 frames
-                  </motion.span>
-                </div>
-              </div>
-
-              <div className="mt-5 flex items-center gap-3">
-                <div className="h-[2px] flex-1 bg-black/10 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{ width: useTransform(scrollYProgress, [0, 1], ["8%", "100%"]), background: accent.a }}
-                  />
-                </div>
-                <div className="text-[11px] text-black/55">scroll</div>
-              </div>
-
-              <div className="mt-5 text-[12px] leading-relaxed text-black/65">
-                Want the “wow” without the mess. Minimal words. Maximum design signal.
-              </div>
-            </div>
-
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <button
-                className="rounded-2xl px-6 py-3 text-sm font-semibold text-white"
-                style={{ background: accent.a }}
-                onClick={() => scrollToId("contact")}
-              >
-                Start a pilot
-              </button>
-              <span className="text-[11px] uppercase tracking-[0.22em] text-black/45">
-                premium ux • serious systems
-              </span>
-            </div>
-          </div>
-
-          {/* RIGHT — film strip */}
-          <div className="relative">
-            <div className="relative overflow-hidden rounded-[34px] border border-black/10 bg-white/60 p-4 md:p-6">
-              {/* top “film header” */}
-              <div className="mb-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: accent.b }} />
-                  <span className="text-[11px] uppercase tracking-[0.34em] text-black/55">Split-screen film</span>
-                </div>
-                <div className="text-[11px] text-black/55">scroll to advance</div>
-              </div>
-
-              {/* film viewport */}
-              <div className="relative h-[520px] md:h-[640px] overflow-hidden rounded-[28px] border border-black/10 bg-white">
-                {/* moving track */}
-                <motion.div
-                  style={{ y: filmY }}
-                  transition={{ duration: reduceMotion ? 0 : 0.2 }}
-                  className="absolute left-0 top-0 w-full"
-                >
-                  {frames.map((f, idx) => (
-                    <FilmFrame
-                      key={f.label}
-                      index={idx}
-                      accent={accent}
-                      label={f.label}
-                      headline={f.headline}
-                      body={f.body}
-                    />
-                  ))}
-                </motion.div>
-
-                {/* film perforations */}
-                <div className="pointer-events-none absolute inset-y-0 left-3 hidden md:flex flex-col justify-between py-6">
-                  {Array.from({ length: 11 }).map((_, i) => (
-                    <div key={i} className="h-3 w-3 rounded-sm bg-black/10" />
-                  ))}
-                </div>
-                <div className="pointer-events-none absolute inset-y-0 right-3 hidden md:flex flex-col justify-between py-6">
-                  {Array.from({ length: 11 }).map((_, i) => (
-                    <div key={i} className="h-3 w-3 rounded-sm bg-black/10" />
-                  ))}
-                </div>
-
-                {/* floating counter */}
-                <div className="pointer-events-none absolute bottom-4 left-4 rounded-full border border-black/10 bg-white/80 px-3 py-1 text-[11px] text-black/60 backdrop-blur">
-                  <span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ background: accent.a }} />
-                  <CounterPill scrollYProgress={scrollYProgress} accent={accent} />
-                </div>
-              </div>
-
-              <div className="mt-4 text-[12px] text-black/55">
-                This is a “design-first” narrative layer: it sells the vibe, the quality bar, and the trust signal.
-              </div>
-            </div>
-
-            {/* glow behind */}
-            <div
-              aria-hidden
-              className="absolute -inset-10 -z-10 rounded-[44px] blur-3xl opacity-40"
-              style={{
-                background: `radial-gradient(circle at 30% 30%, ${accent.a}22, transparent 60%),
-                             radial-gradient(circle at 70% 40%, ${accent.b}22, transparent 60%),
-                             radial-gradient(circle at 50% 80%, ${accent.c}18, transparent 62%)`,
-              }}
-            />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CounterPill({ scrollYProgress, accent }: { scrollYProgress: any; accent: Accent }) {
-  const v = useTransform(scrollYProgress, [0, 1], [1, 6]);
-  const [n, setN] = useState(1);
-
-  useEffect(() => {
-    const unsub = v.on("change", (x: number) => {
-      setN(clampInt(Math.round(x), 1, 6));
-    });
-    return () => unsub();
-  }, [v]);
-
-  return (
-    <span className="font-semibold" style={{ color: accent.a }}>
-      Frame {String(n).padStart(2, "0")} / 06
-    </span>
-  );
-}
-
-function clampInt(n: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, n));
-}
-
-function FilmFrame({
-  index,
-  accent,
-  label,
-  headline,
-  body,
+function NavBtn({
+  theme,
+  active,
+  onClick,
+  children,
 }: {
-  index: number;
-  accent: Accent;
-  label: string;
-  headline: string;
-  body: string;
+  theme: Theme;
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
 }) {
-  // Each frame is a “campaign still” made with CSS gradients (no assets needed).
-  // We alternate art direction a bit per frame.
-  const art = getArtDirection(index, accent);
-
-  return (
-    <div className="h-[520px] md:h-[640px] w-full p-4 md:p-6">
-      <div className="grid h-full gap-4 md:grid-cols-[1.1fr,0.9fr]">
-        {/* left: image still */}
-        <div className="relative overflow-hidden rounded-[26px] border border-black/10 bg-white">
-          <div className="absolute inset-0" style={{ background: art.background }} />
-          <div className="absolute inset-0" style={{ background: art.overlay }} />
-
-          {/* micro details */}
-          <div className="absolute left-4 top-4 rounded-full border border-black/10 bg-white/80 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-black/60 backdrop-blur">
-            REZIIIX
-          </div>
-
-          <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-black/10 bg-white/80 p-3 backdrop-blur">
-            <div className="text-[10px] uppercase tracking-[0.28em] text-black/50">{label}</div>
-            <div className="mt-1 text-[13px] font-semibold tracking-[-0.01em]" style={{ color: accent.a }}>
-              {headline}
-            </div>
-          </div>
-        </div>
-
-        {/* right: editorial caption */}
-        <div className="rounded-[26px] border border-black/10 bg-white/70 p-5">
-          <div className="text-[10px] uppercase tracking-[0.34em] text-black/50">
-            Caption
-          </div>
-          <div className="mt-4 text-[16px] font-semibold leading-snug tracking-[-0.01em]">
-            {headline}
-          </div>
-          <div className="mt-3 text-[13px] leading-relaxed text-black/70">{body}</div>
-
-          <div className="mt-6 space-y-2">
-            <CaptionLine accent={accent} t="Minimal words. Maximum signal." />
-            <CaptionLine accent={accent} t="Designed like a premium product." />
-            <CaptionLine accent={accent} t="Built to earn trust in real teams." />
-          </div>
-
-          <div className="mt-6 border-t border-black/10 pt-4 text-[11px] uppercase tracking-[0.22em] text-black/50">
-            Frame {String(index + 1).padStart(2, "0")} • Studio film
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function getArtDirection(i: number, accent: Accent) {
-  // different “stills” via gradients; looks like abstract editorial photography
-  const sets = [
-    {
-      background: `radial-gradient(circle at 20% 25%, ${accent.a}55, transparent 60%),
-                   radial-gradient(circle at 70% 35%, ${accent.b}44, transparent 62%),
-                   radial-gradient(circle at 40% 80%, ${accent.c}33, transparent 64%),
-                   linear-gradient(135deg, #ffffff, #f2f2ee)`,
-      overlay: `linear-gradient(180deg, rgba(255,255,255,0.0), rgba(0,0,0,0.06))`,
-    },
-    {
-      background: `radial-gradient(circle at 65% 20%, ${accent.b}55, transparent 58%),
-                   radial-gradient(circle at 25% 55%, ${accent.c}40, transparent 60%),
-                   radial-gradient(circle at 55% 85%, ${accent.a}30, transparent 62%),
-                   linear-gradient(135deg, #ffffff, #f2f2ee)`,
-      overlay: `radial-gradient(circle at 50% 50%, rgba(0,0,0,0.05), transparent 55%)`,
-    },
-    {
-      background: `conic-gradient(from 180deg at 50% 50%, ${accent.a}25, ${accent.b}20, ${accent.c}18, ${accent.a}25),
-                   linear-gradient(135deg, #ffffff, #f2f2ee)`,
-      overlay: `linear-gradient(90deg, rgba(0,0,0,0.08), rgba(0,0,0,0.0), rgba(0,0,0,0.08))`,
-    },
-    {
-      background: `radial-gradient(circle at 35% 30%, ${accent.c}55, transparent 62%),
-                   radial-gradient(circle at 75% 60%, ${accent.a}44, transparent 60%),
-                   radial-gradient(circle at 45% 85%, ${accent.b}30, transparent 64%),
-                   linear-gradient(135deg, #ffffff, #f2f2ee)`,
-      overlay: `linear-gradient(0deg, rgba(255,255,255,0.0), rgba(0,0,0,0.05))`,
-    },
-    {
-      background: `radial-gradient(circle at 50% 25%, ${accent.a}55, transparent 62%),
-                   radial-gradient(circle at 30% 65%, ${accent.b}40, transparent 60%),
-                   radial-gradient(circle at 75% 78%, ${accent.c}30, transparent 64%),
-                   linear-gradient(135deg, #ffffff, #f2f2ee)`,
-      overlay: `radial-gradient(circle at 50% 50%, rgba(255,255,255,0.35), transparent 60%)`,
-    },
-    {
-      background: `linear-gradient(135deg, ${accent.a}20, ${accent.b}16, ${accent.c}12),
-                   linear-gradient(135deg, #ffffff, #f2f2ee)`,
-      overlay: `radial-gradient(circle at 50% 40%, rgba(0,0,0,0.06), transparent 55%)`,
-    },
-  ];
-  return sets[i % sets.length];
-}
-
-/* ---------------- small UI ---------------- */
-
-function Nav({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="rounded-full px-3 py-2 text-[12px] text-black/60 hover:text-black transition"
-      type="button"
+      className="rounded-full px-3 py-2 text-[12px] transition"
+      style={{
+        color: active ? theme.ink : theme.muted,
+      }}
     >
-      {children}
+      <span className="relative">
+        {children}
+        {active && (
+          <span
+            className="absolute -bottom-2 left-0 h-[2px] w-full rounded-full"
+            style={{ background: theme.a }}
+          />
+        )}
+      </span>
     </button>
   );
 }
 
-function MiniTile({ accent, k, v }: { accent: Accent; k: string; v: string }) {
+function Pill({ theme, children }: { theme: Theme; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-black/10 bg-white p-4">
-      <div className="text-[10px] uppercase tracking-[0.28em] text-black/50">{k}</div>
-      <div className="mt-2 text-[13px] font-semibold leading-snug" style={{ color: accent.a }}>
+    <span
+      className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.22em]"
+      style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)", color: theme.muted }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function MiniStat({ theme, k, v }: { theme: Theme; k: string; v: string }) {
+  return (
+    <div className="rounded-2xl p-4" style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}>
+      <div className="text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
+        {k}
+      </div>
+      <div className="mt-2 text-[13px] font-semibold" style={{ color: theme.ink }}>
         {v}
       </div>
     </div>
   );
 }
 
-function Tag({ children, accent }: { children: React.ReactNode; accent: Accent }) {
+type Capability = {
+  title: string;
+  subtitle: string;
+  body: string;
+  bullets: string[];
+  tag: string;
+};
+
+function CapabilityModal({
+  theme,
+  open,
+  onClose,
+}: {
+  theme: Theme;
+  open: Capability | null;
+  onClose: () => void;
+}) {
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   return (
-    <span
-      className="rounded-full border border-black/10 bg-white/70 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-black/70"
-      style={{ boxShadow: `0 0 0 2px ${accent.a}08 inset` }}
-    >
-      {children}
-    </span>
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-[999] flex items-center justify-center px-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onMouseDown={onClose}
+        >
+          <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.35)" }} />
+          <motion.div
+            onMouseDown={(e) => e.stopPropagation()}
+            initial={{ y: reduceMotion ? 0 : 14, opacity: 0, scale: 0.99 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: reduceMotion ? 0 : 14, opacity: 0, scale: 0.99 }}
+            transition={{ duration: reduceMotion ? 0.1 : 0.18, ease: "easeOut" }}
+            className="relative w-full max-w-2xl overflow-hidden rounded-[30px] p-6"
+            style={{ background: theme.bg, border: `1px solid ${theme.border}` }}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.32em]" style={{ color: theme.muted }}>
+                  {open.tag}
+                </div>
+                <div className="mt-3 text-[18px] font-semibold">{open.title}</div>
+                <div className="mt-2 text-[13px]" style={{ color: theme.muted }}>
+                  {open.subtitle}
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="rounded-full px-3 py-2 text-[12px]"
+                style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-6 rounded-3xl p-5"
+                 style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}>
+              <div className="text-[13px] leading-relaxed" style={{ color: theme.muted }}>
+                {open.body}
+              </div>
+
+              <div className="mt-4 grid gap-2 md:grid-cols-2">
+                {open.bullets.map((b) => (
+                  <div key={b} className="flex items-start gap-2">
+                    <span className="mt-2 h-2 w-2 rounded-full" style={{ background: theme.a }} />
+                    <span className="text-[13px]" style={{ color: theme.muted }}>
+                      {b}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Pill theme={theme}>High-quality UX</Pill>
+              <Pill theme={theme}>Practical builds</Pill>
+              <Pill theme={theme}>Enterprise constraints</Pill>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
-function BigCard({ title, body, foot, accent }: { title: string; body: string; foot: string; accent: Accent }) {
+function OfferCard({
+  theme,
+  title,
+  price,
+  body,
+  bullets,
+  badge,
+}: {
+  theme: Theme;
+  title: string;
+  price: string;
+  body: string;
+  bullets: string[];
+  badge: string;
+}) {
   return (
-    <div className="group relative overflow-hidden rounded-[28px] border border-black/10 bg-white/70 p-6 transition hover:bg-white">
-      <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full blur-3xl opacity-50" style={{ background: `${accent.a}22` }} />
-      <div className="relative">
-        <div className="text-[13px] font-semibold tracking-[-0.01em]">{title}</div>
-        <div className="mt-3 text-[13px] leading-relaxed text-black/65">{body}</div>
-        <div className="mt-6 flex items-center justify-between gap-4 border-t border-black/10 pt-4">
-          <span className="text-[11px] uppercase tracking-[0.22em] text-black/45">{foot}</span>
-          <span className="text-[11px] font-semibold" style={{ color: accent.b }}>
-            →
-          </span>
+    <div className="rounded-[28px] p-6"
+         style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.32em]" style={{ color: theme.muted }}>
+            {badge}
+          </div>
+          <div className="mt-3 text-[15px] font-semibold">{title}</div>
+          <div className="mt-2 text-[12px]" style={{ color: theme.muted }}>
+            {price}
+          </div>
         </div>
+        <span
+          className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+          style={{ color: theme.b, border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
+        >
+          →
+        </span>
+      </div>
+
+      <div className="mt-4 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
+        {body}
+      </div>
+
+      <div className="mt-5 space-y-2">
+        {bullets.map((x) => (
+          <div key={x} className="flex items-start gap-2">
+            <span className="mt-2 h-2 w-2 rounded-full" style={{ background: theme.c }} />
+            <span className="text-[13px]" style={{ color: theme.muted }}>
+              {x}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-function ProofLine({ k, v, accent }: { k: string; v: string; accent: Accent }) {
-  return (
-    <div className="flex items-start gap-3">
-      <span className="mt-2 h-2 w-2 rounded-full" style={{ background: accent.a }} />
-      <div>
-        <div className="text-[11px] uppercase tracking-[0.28em] text-black/50">{k}</div>
-        <div className="mt-1 text-[13px] text-black/70">{v}</div>
-      </div>
-    </div>
-  );
-}
-
-function Bullet({ children, accent }: { children: React.ReactNode; accent: Accent }) {
-  return (
-    <div className="flex items-start gap-3">
-      <span className="mt-[7px] h-2 w-2 rounded-full" style={{ background: accent.b }} />
-      <div className="text-[13px] leading-relaxed text-black/70">{children}</div>
-    </div>
-  );
-}
-
-function CaptionLine({ t, accent }: { t: string; accent: Accent }) {
-  return (
-    <div className="flex items-start gap-3">
-      <span className="mt-[7px] h-2 w-2 rounded-full" style={{ background: accent.c }} />
-      <div className="text-[13px] text-black/70">{t}</div>
-    </div>
-  );
-}
-
-function Input({ placeholder }: { placeholder: string }) {
+function Input({ theme, placeholder }: { theme: Theme; placeholder: string }) {
   return (
     <input
       placeholder={placeholder}
-      className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black placeholder:text-black/35 outline-none focus:border-black/20"
+      className="w-full rounded-2xl px-4 py-3 text-sm outline-none"
+      style={{
+        border: `1px solid ${theme.border}`,
+        background: "rgba(255,255,255,0.55)",
+        color: theme.ink,
+      }}
     />
   );
 }
 
-function Textarea({ placeholder }: { placeholder: string }) {
+function Textarea({ theme, placeholder }: { theme: Theme; placeholder: string }) {
   return (
     <textarea
       placeholder={placeholder}
-      className="h-28 w-full resize-none rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black placeholder:text-black/35 outline-none focus:border-black/20"
+      className="h-28 w-full resize-none rounded-2xl px-4 py-3 text-sm outline-none"
+      style={{
+        border: `1px solid ${theme.border}`,
+        background: "rgba(255,255,255,0.55)",
+        color: theme.ink,
+      }}
     />
+  );
+}
+
+/** --------- Integration Universe (visual, not a process) --------- */
+
+function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }) {
+  const reduceMotion = useReducedMotion();
+
+  // distribute labels around a circle + small drift animation
+  const positions = useMemo(() => {
+    const n = items.length;
+    return items.map((_, i) => {
+      const angle = (i / n) * Math.PI * 2;
+      const r = 165 + (i % 3) * 22;
+      return {
+        x: Math.cos(angle) * r,
+        y: Math.sin(angle) * r,
+        d: 5 + (i % 5),
+        delay: (i % 7) * 0.12,
+      };
+    });
+  }, [items]);
+
+  return (
+    <div
+      className="relative h-[440px] md:h-[480px] overflow-hidden rounded-[32px]"
+      style={{ border: `1px solid ${theme.border}`, background: theme.card }}
+    >
+      <div
+        className="absolute -inset-24 blur-2xl opacity-60"
+        style={{
+          background: `radial-gradient(circle at 30% 20%, ${theme.a}28, transparent 55%),
+                       radial-gradient(circle at 70% 30%, ${theme.b}24, transparent 55%),
+                       radial-gradient(circle at 55% 85%, ${theme.c}18, transparent 62%)`,
+        }}
+      />
+
+      {/* center core */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        <div
+          className="grid place-items-center rounded-[26px] px-6 py-5"
+          style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.62)" }}
+        >
+          <div className="text-[10px] uppercase tracking-[0.32em]" style={{ color: theme.muted }}>
+            REZIIIX
+          </div>
+          <div className="mt-2 text-[15px] font-semibold">Integrates into</div>
+          <div className="mt-1 text-[13px]" style={{ color: theme.muted }}>
+            your existing tools
+          </div>
+        </div>
+      </div>
+
+      {/* orbit rings */}
+      <div className="pointer-events-none absolute inset-0">
+        <div
+          className="absolute left-1/2 top-1/2 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ border: `1px dashed ${theme.border}` }}
+        />
+        <div
+          className="absolute left-1/2 top-1/2 h-[260px] w-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ border: `1px dashed ${theme.border}` }}
+        />
+      </div>
+
+      {/* nodes */}
+      {items.map((label, i) => {
+        const p = positions[i];
+        return (
+          <motion.div
+            key={label}
+            className="absolute left-1/2 top-1/2"
+            initial={false}
+            animate={
+              reduceMotion
+                ? { x: p.x, y: p.y }
+                : { x: [p.x - p.d, p.x + p.d, p.x - p.d], y: [p.y + p.d, p.y - p.d, p.y + p.d] }
+            }
+            transition={
+              reduceMotion
+                ? { duration: 0.1 }
+                : { duration: 6 + (i % 6), repeat: Infinity, ease: "easeInOut", delay: p.delay }
+            }
+          >
+            <div
+              className="whitespace-nowrap rounded-full px-3 py-2 text-[11px] uppercase tracking-[0.18em]"
+              style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.62)", color: theme.muted }}
+            >
+              <span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ background: i % 3 === 0 ? theme.a : i % 3 === 1 ? theme.b : theme.c }} />
+              {label}
+            </div>
+          </motion.div>
+        );
+      })}
+    </div>
   );
 }

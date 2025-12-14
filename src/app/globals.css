@@ -26,6 +26,7 @@ body {
     "SF Pro Text", "SF Pro Display", sans-serif;
 }
 
+
 @keyframes glow {
   0% {
     filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.4));
