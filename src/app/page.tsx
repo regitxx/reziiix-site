@@ -1,604 +1,627 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import TopNav from "@/components/TopNav";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
 
-type Tone = "neutral" | "accent" | "warning";
-type Pill = { label: string; tone?: Tone };
+/**
+ * REZIIIX — Award Cut
+ * Goal: calm hierarchy, editorial clarity, high-trust enterprise tone, "wow" layout.
+ * No dependency on your existing components.
+ */
 
-type UseCase = {
+type PillTone = "ink" | "mint" | "amber" | "violet";
+type Pill = { label: string; tone?: PillTone };
+
+type Module = {
   title: string;
-  area: string;
-  desc: string;
-  result: string;
-  pills: Pill[];
+  subtitle: string;
+  body: string;
+  pillars: Pill[];
 };
 
-type TimelineStep = {
-  week: string;
+type Step = {
+  k: string;
   title: string;
-  desc: string;
+  body: string;
 };
 
-const useCases: UseCase[] = [
+type FAQ = {
+  q: string;
+  a: string;
+};
+
+const modules: Module[] = [
   {
-    title: "Policy + Knowledge Ops Agent",
-    area: "Ops · Knowledge",
-    desc: "Turns scattered policy docs and threads into decision-ready briefs with traceable sources and escalation rules.",
-    result: "Less searching. Faster alignment. Clear ownership.",
-    pills: [
-      { label: "Retrieval + synthesis", tone: "accent" },
-      { label: "Citations", tone: "neutral" },
-      { label: "Human approval", tone: "neutral" },
+    title: "Automation that behaves like a system",
+    subtitle: "Not a bot. Not a demo. A governed capability.",
+    body:
+      "We design agentic workflows that operate inside your stack with audit trails, confidence thresholds, and defined escalation. Your team remains owners. The system does the repetitive work.",
+    pillars: [
+      { label: "Audit trails", tone: "ink" },
+      { label: "Confidence gating", tone: "mint" },
+      { label: "Human handoffs", tone: "ink" },
+      { label: "Policy-first", tone: "amber" },
     ],
   },
   {
-    title: "Service Desk Triage Fabric",
-    area: "Support · IT/HR",
-    desc: "Routes inbound requests, drafts replies, creates tickets, and keeps an audit trail of every decision.",
-    result: "Lower queue pressure. Stable SLAs as volume grows.",
-    pills: [
-      { label: "Routing", tone: "accent" },
-      { label: "SLA-aware", tone: "neutral" },
-      { label: "Audit trail", tone: "neutral" },
+    title: "An AI factory inside your company",
+    subtitle: "A repeatable pattern, not one-off automation.",
+    body:
+      "We build the fabric: integrations, knowledge retrieval, memory, tools, and governance. After the first workflow works, you expand into adjacent ones—without rebuilding from scratch.",
+    pillars: [
+      { label: "Reusable patterns", tone: "violet" },
+      { label: "Owned by your team", tone: "ink" },
+      { label: "Expandable by design", tone: "mint" },
+      { label: "Operational playbooks", tone: "amber" },
     ],
   },
   {
-    title: "Ops Monitoring + Runbook Agent",
-    area: "Ops · Monitoring",
-    desc: "Watches signals, detects patterns, and prepares runbook actions—only executes when policies allow it.",
-    result: "Fewer surprises. Cleaner 2 a.m. handoffs.",
-    pills: [
-      { label: "Guardrails", tone: "warning" },
-      { label: "Runbooks", tone: "neutral" },
-      { label: "Escalation", tone: "neutral" },
+    title: "Enterprise-ready delivery",
+    subtitle: "Clear boundaries. Observable behavior.",
+    body:
+      "A successful engagement ends with a running system, not slides: logs, metrics, guardrails, and an internal owner. We deploy Microsoft-native (Copilot Studio / M365) when it fits, or custom inside your environment.",
+    pillars: [
+      { label: "Microsoft-native", tone: "mint" },
+      { label: "Custom deployments", tone: "ink" },
+      { label: "Observability", tone: "violet" },
+      { label: "Security-first", tone: "amber" },
     ],
   },
 ];
 
-const timeline: TimelineStep[] = [
+const steps: Step[] = [
   {
-    week: "Week 1",
-    title: "Workflow + risk map",
-    desc: "Pick one messy workflow. Define owners, inputs, outputs, constraints, and failure modes.",
+    k: "01",
+    title: "Scope one workflow",
+    body:
+      "Pick something real and messy—where time leaks. Define inputs, outputs, risk, owners, and acceptance criteria.",
   },
   {
-    week: "Week 2",
-    title: "Build the first agent",
-    desc: "Integrate where work happens. Add logs, confidence gating, and human review paths.",
+    k: "02",
+    title: "Build the governed core",
+    body:
+      "Integrations, retrieval, tool-use, and logging. Add policies, confidence thresholds, and escalation paths from day one.",
   },
   {
-    week: "Week 3",
+    k: "03",
     title: "Pilot in production",
-    desc: "Ship behind controls. Measure outcomes. Tighten guardrails and edge cases.",
+    body:
+      "Ship behind controls. Measure outcomes. Tighten edge cases. Transfer operational ownership to your internal lead.",
   },
   {
-    week: "Week 4",
-    title: "Scale patterns",
-    desc: "Expand to adjacent workflows. Add monitoring and operational playbooks.",
+    k: "04",
+    title: "Scale into an internal factory",
+    body:
+      "Reuse the fabric for adjacent workflows. Add monitoring, runbooks, and a workshop so teams can extend safely.",
   },
 ];
 
-function cx(...parts: Array<string | false | undefined | null>) {
-  return parts.filter(Boolean).join(" ");
-}
+const faqs: FAQ[] = [
+  {
+    q: "Do we need a dashboard or a full platform UI?",
+    a: "Not at first. We usually embed the system inside your existing tools (M365, Slack, email, Jira, ServiceNow, CRM). If you need a lightweight control panel later, we add it once the workflows prove value.",
+  },
+  {
+    q: "Can you build Copilot Studio / M365 agents too?",
+    a: "Yes. When Microsoft-native fits your environment, we design agents with governance, logging, and safe escalation—then optionally run a workshop so your team can extend and operate them.",
+  },
+  {
+    q: "What’s the typical first use case?",
+    a: "Triage + synthesis: routing inbound requests, summarizing threads, producing decision briefs, and drafting responses—because it creates immediate leverage without risky write-actions.",
+  },
+  {
+    q: "How do you avoid unpredictable agent behavior?",
+    a: "We use scoped tools, explicit policies, confidence thresholds, audit logs, and human-in-loop controls. If confidence is low or inputs are incomplete, the system escalates with a structured brief—not a guess.",
+  },
+];
 
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
+function cx(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(" ");
 }
 
 function scrollToId(id: string) {
   const el = document.getElementById(id);
   if (!el) return;
-  const headerOffset = 80;
+  const headerOffset = 88;
   const rect = el.getBoundingClientRect();
   const y = rect.top + window.scrollY - headerOffset;
   window.scrollTo({ top: y, behavior: "smooth" });
 }
 
-export default function HomePage() {
+export default function AwardPage() {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const { scrollYProgress } = useScroll({ target: rootRef, offset: ["start start", "end end"] });
 
-  /* ---------- Cinematic: “scene lighting” across scroll ---------- */
-  const gridOpacity = useTransform(scrollYProgress, [0, 0.35], [0.78, 0.18]);
-  const vignetteOpacity = useTransform(scrollYProgress, [0, 1], [0.22, 0.68]);
+  // calm editorial lighting
+  const bgA = useTransform(scrollYProgress, [0, 0.35, 0.75, 1], [0.55, 0.25, 0.35, 0.45]);
+  const bgB = useTransform(scrollYProgress, [0, 0.45, 1], [0.35, 0.55, 0.25]);
+  const vignette = useTransform(scrollYProgress, [0, 1], [0.2, 0.65]);
 
-  // Scene lights (subtle, not gradient spam)
-  const lightAOpacity = useTransform(scrollYProgress, [0, 0.22, 0.4], [0.55, 0.65, 0.18]); // hero
-  const lightBOpacity = useTransform(scrollYProgress, [0.25, 0.5, 0.72], [0.08, 0.55, 0.12]); // model
-  const lightCOpacity = useTransform(scrollYProgress, [0.6, 0.82, 1], [0.06, 0.38, 0.55]); // pilot/contact
-
-  // subtle “film grain”
-  const grainOpacity = useTransform(scrollYProgress, [0, 1], [0.05, 0.08]);
-
-  /* ---------- “AI Factory Configurator” state ---------- */
-  const [complexity, setComplexity] = useState(62);
-  const [risk, setRisk] = useState(46);
-  const [integration, setIntegration] = useState(72);
-  const [copilot, setCopilot] = useState(true);
-
-  const model = useMemo(() => {
-    const automationCoverage = clamp(
-      Math.round(integration * 0.45 + (100 - risk) * 0.25 + (100 - complexity) * 0.3),
-      18,
-      92
-    );
-    const humanInLoop = clamp(Math.round(risk * 0.55 + complexity * 0.25 + (copilot ? 8 : 0)), 10, 85);
-    const timeToPilotDays = clamp(
-      Math.round((complexity * 0.35 + risk * 0.25 + (100 - integration) * 0.4) / 2.2),
-      7,
-      35
-    );
-
-    const recommended = copilot
-      ? "Microsoft-native deployment + governed agent fabric"
-      : "Custom agent fabric deployed inside your environment";
-
-    const keyControls = [
-      risk > 55 ? "Mandatory human approval for actions" : "Human approval on exceptions",
-      integration < 45 ? "Start read-only + drafting (no write actions)" : "Scoped write actions with audit logs",
-      complexity > 70 ? "Narrow scope: one queue + one system first" : "Pilot one workflow end-to-end",
-      "Event logs + decision traces by default",
-    ];
-
-    return { automationCoverage, humanInLoop, timeToPilotDays, recommended, keyControls };
-  }, [complexity, risk, integration, copilot]);
-
-  /* ---------- Product: “System ready” indicator ---------- */
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    const t = window.setTimeout(() => setReady(true), 650);
-    return () => window.clearTimeout(t);
-  }, []);
-
-  /* ---------- Product: Command Palette (⌘K) ---------- */
+  // command palette (optional, light)
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [query, setQuery] = useState("");
-
-  const quickActions = useMemo(() => {
-    const actions: Array<{
-      label: string;
-      hint?: string;
-      run: () => void;
-    }> = [
-      { label: "Go: Home", hint: "#top", run: () => scrollToId("top") },
-      { label: "Go: Model", hint: "#model", run: () => scrollToId("model") },
-      { label: "Go: Patterns", hint: "#cases", run: () => scrollToId("cases") },
-      { label: "Go: Pilot", hint: "#pilot", run: () => scrollToId("pilot") },
-      { label: "Go: Contact", hint: "#contact", run: () => scrollToId("contact") },
-
-      {
-        label: copilot ? "Toggle: Copilot Studio / M365 (ON)" : "Toggle: Copilot Studio / M365 (OFF)",
-        hint: "switch",
-        run: () => setCopilot((v) => !v),
-      },
-      {
-        label: "Preset: Conservative (high governance)",
-        hint: "safe",
-        run: () => {
-          setRisk(70);
-          setComplexity(58);
-          setIntegration(55);
-        },
-      },
-      {
-        label: "Preset: Balanced (typical enterprise pilot)",
-        hint: "default",
-        run: () => {
-          setRisk(48);
-          setComplexity(60);
-          setIntegration(72);
-        },
-      },
-      {
-        label: "Preset: Aggressive (fast iteration)",
-        hint: "speed",
-        run: () => {
-          setRisk(30);
-          setComplexity(52);
-          setIntegration(85);
-        },
-      },
-      {
-        label: "Randomize model",
-        hint: "fun",
-        run: () => {
-          setRisk(rand(25, 80));
-          setComplexity(rand(35, 85));
-          setIntegration(rand(35, 92));
-        },
-      },
-    ];
-
-    return actions;
-  }, [copilot]);
-
-  const filteredActions = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return quickActions;
-    return quickActions.filter((a) => a.label.toLowerCase().includes(q) || (a.hint ?? "").toLowerCase().includes(q));
-  }, [query, quickActions]);
-
-  const closePalette = useCallback(() => {
-    setPaletteOpen(false);
-    setQuery("");
-  }, []);
+  const [q, setQ] = useState("");
 
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
+    const onKey = (e: KeyboardEvent) => {
       const isCmdK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k";
       if (isCmdK) {
         e.preventDefault();
         setPaletteOpen((v) => !v);
       }
-      if (e.key === "Escape") closePalette();
+      if (e.key === "Escape") {
+        setPaletteOpen(false);
+        setQ("");
+      }
     };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [closePalette]);
+  const actions = useMemo(
+    () => [
+      { label: "Go: Home", hint: "#top", run: () => scrollToId("top") },
+      { label: "Go: The story", hint: "#story", run: () => scrollToId("story") },
+      { label: "Go: Process", hint: "#process", run: () => scrollToId("process") },
+      { label: "Go: Patterns", hint: "#patterns", run: () => scrollToId("patterns") },
+      { label: "Go: Workshop", hint: "#workshop", run: () => scrollToId("workshop") },
+      { label: "Go: FAQ", hint: "#faq", run: () => scrollToId("faq") },
+      { label: "Go: Contact", hint: "#contact", run: () => scrollToId("contact") },
+    ],
+    []
+  );
+
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return actions;
+    return actions.filter((a) => a.label.toLowerCase().includes(s) || (a.hint ?? "").toLowerCase().includes(s));
+  }, [q, actions]);
 
   return (
     <main ref={rootRef} className="relative min-h-screen bg-black text-neutral-100">
-      {/* Cinematic layers (fixed) */}
-      <motion.div aria-hidden="true" style={{ opacity: gridOpacity }} className="pointer-events-none fixed inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.10),transparent_55%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:64px_64px] opacity-60" />
+      {/* Background: calm, premium, less “busy” */}
+      <motion.div aria-hidden="true" className="pointer-events-none fixed inset-0">
+        <motion.div
+          style={{ opacity: bgA }}
+          className="absolute -top-40 left-1/2 h-[760px] w-[900px] -translate-x-1/2 rounded-[55%] bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.14),transparent_60%)] blur-3xl"
+        />
+        <motion.div
+          style={{ opacity: bgB }}
+          className="absolute top-[18vh] right-[-12rem] h-[740px] w-[740px] rounded-full bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.13),transparent_62%)] blur-3xl"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:92px_92px] opacity-25" />
+        <motion.div
+          style={{ opacity: vignette }}
+          className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_28%,rgba(0,0,0,0.86)_74%)]"
+        />
       </motion.div>
 
-      {/* Scene lights */}
-      <motion.div
-        aria-hidden="true"
-        style={{ opacity: lightAOpacity }}
-        className="pointer-events-none fixed inset-0"
-      >
-        <div className="absolute -top-24 left-1/2 h-[720px] w-[900px] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.18),transparent_60%)] blur-3xl" />
-      </motion.div>
-
-      <motion.div
-        aria-hidden="true"
-        style={{ opacity: lightBOpacity }}
-        className="pointer-events-none fixed inset-0"
-      >
-        <div className="absolute top-[22vh] right-[-12rem] h-[700px] w-[700px] rounded-full bg-[radial-gradient(circle_at_center,rgba(129,140,248,0.16),transparent_62%)] blur-3xl" />
-      </motion.div>
-
-      <motion.div
-        aria-hidden="true"
-        style={{ opacity: lightCOpacity }}
-        className="pointer-events-none fixed inset-0"
-      >
-        <div className="absolute bottom-[-18rem] left-[-10rem] h-[760px] w-[760px] rounded-full bg-[radial-gradient(circle_at_center,rgba(244,114,182,0.14),transparent_62%)] blur-3xl" />
-      </motion.div>
-
-      <motion.div
-        aria-hidden="true"
-        style={{ opacity: vignetteOpacity }}
-        className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.85)_75%)]"
-      />
-
-      {/* light film grain */}
-      <motion.div aria-hidden="true" style={{ opacity: grainOpacity }} className="pointer-events-none fixed inset-0">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%222%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22120%22 height=%22120%22 filter=%22url(%23n)%22 opacity=%220.35%22/%3E%3C/svg%3E')] mix-blend-overlay" />
-      </motion.div>
-
-      {/* NAV */}
-      <TopNav />
-
-      {/* HERO */}
-      <section id="top" className="relative border-b border-white/10">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 pb-14 pt-14 md:grid-cols-[1.05fr,0.95fr] md:pb-20 md:pt-20">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-neutral-200 backdrop-blur">
-              <span className="h-1.5 w-1.5 rounded-full bg-sky-400 shadow-[0_0_14px_rgba(56,189,248,0.8)]" />
-              <span className="uppercase tracking-[0.22em]">Blueprint Edition • Enterprise workflows</span>
-            </div>
-
-            <h1 className="mt-5 text-4xl font-semibold leading-tight text-white md:text-6xl">
-              Build an internal{" "}
-              <span className="bg-gradient-to-r from-sky-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-                AI factory
-              </span>{" "}
-              — not another tool.
-            </h1>
-
-            <p className="mt-5 max-w-xl text-sm leading-relaxed text-neutral-200 md:text-[15px]">
-              REZIIIX designs and deploys production-grade AI systems embedded in your real stack.
-              They observe, decide, and act with audit trails, guardrails, and clean human handoffs.
-            </p>
-
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <a
-                href="#model"
-                className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-black shadow-[0_20px_60px_rgba(248,250,252,0.12)] hover:bg-neutral-200"
-              >
-                Explore the model
-              </a>
-              <a
-                href="#pilot"
-                className="rounded-full border border-white/15 bg-white/5 px-5 py-2 text-sm text-neutral-200 hover:border-white/25"
-              >
-                Start with a pilot
-              </a>
-
-              <button
-                type="button"
-                onClick={() => setPaletteOpen(true)}
-                className="rounded-full border border-white/15 bg-white/5 px-5 py-2 text-sm text-neutral-200 hover:border-white/25"
-              >
-                ⌘K Command
-              </button>
-
-              <span className="text-[11px] text-neutral-500">Remote • global teams • enterprise-first</span>
-            </div>
-
-            <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
-              <div className="text-[10px] uppercase tracking-[0.26em] text-neutral-400">Principle</div>
-              <div className="mt-2 text-sm text-neutral-200">
-                You own the system: logic, governance, and deployment model. The platform is a means — the factory is the capability.
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-4">
-              <div className="text-[10px] uppercase tracking-[0.28em] text-neutral-500">A quiet truth</div>
-              <div className="mt-2 text-lg font-light leading-snug text-neutral-100 md:text-xl">
-                Automation isn’t about speed. It’s about removing uncertainty.
-              </div>
-              <div className="mt-2 text-[12px] leading-relaxed text-neutral-400">
-                That’s why we ship audit trails, escalation paths, and operational ownership from day one.
-              </div>
+      {/* NAV (award cut) */}
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-black/45 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="h-7 w-7 rounded-full bg-white/10 ring-1 ring-white/10" />
+            <div className="leading-none">
+              <div className="text-[11px] uppercase tracking-[0.32em] text-white">REZIIIX</div>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">Award cut</div>
             </div>
           </div>
 
-          {/* Control Room Panel */}
-          <div className="relative">
-            <div className="absolute -inset-6 rounded-[28px] bg-[radial-gradient(circle_at_top,rgba(129,140,248,0.18),transparent_65%)] blur-2xl" />
+          <nav className="hidden items-center gap-4 text-[12px] text-neutral-300 md:flex">
+            <NavLink onClick={() => scrollToId("story")}>Story</NavLink>
+            <NavLink onClick={() => scrollToId("process")}>Process</NavLink>
+            <NavLink onClick={() => scrollToId("patterns")}>Patterns</NavLink>
+            <NavLink onClick={() => scrollToId("workshop")}>Workshop</NavLink>
+            <NavLink onClick={() => scrollToId("contact")}>Contact</NavLink>
 
-            <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/60 backdrop-blur-xl">
-              <div className="border-b border-white/10 bg-white/5 px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">Factory console</div>
-                    <div className="text-xs text-neutral-200">REZIIIX • Orchestration</div>
-                  </div>
+            <span className="ml-2 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-neutral-200">
+              ⌘K
+            </span>
+          </nav>
 
-                  <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1">
-                    <span className={cx("h-1.5 w-1.5 rounded-full", ready ? "bg-emerald-400" : "bg-neutral-600")} />
-                    <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-200">
-                      {ready ? "System ready" : "Booting"}
-                    </span>
-                  </div>
-                </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPaletteOpen(true)}
+              className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] text-neutral-200 hover:border-white/20 md:inline"
+              type="button"
+            >
+              Command
+            </button>
+
+            <button
+              onClick={() => scrollToId("contact")}
+              className="rounded-full bg-white px-4 py-1.5 text-[12px] font-semibold text-black hover:bg-neutral-200"
+              type="button"
+            >
+              Book a call
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* HERO */}
+      <section id="top" className="relative">
+        <div className="mx-auto max-w-6xl px-4 pb-12 pt-16 md:pb-16 md:pt-20">
+          <div className="grid gap-10 md:grid-cols-[1.15fr,0.85fr] md:items-end">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-neutral-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(16,185,129,0.7)]" />
+                <span className="uppercase tracking-[0.22em]">Agentic automation • enterprise workflows</span>
               </div>
 
-              <div className="p-4">
-                <div className="grid gap-3 md:grid-cols-2">
-                  <StatCard label="Automation coverage" value={`${model.automationCoverage}%`} hint="Where the system can act safely." />
-                  <StatCard label="Human-in-loop" value={`${model.humanInLoop}%`} hint="Review gating & escalation rate." />
-                  <StatCard label="Time to pilot" value={`${model.timeToPilotDays} days`} hint="Typical build-to-live cycle." />
-                  <StatCard label="Deployment" value={copilot ? "Microsoft-native" : "Custom fabric"} hint="Matches your environment." />
-                </div>
+              <h1 className="mt-6 text-[clamp(2.6rem,6vw,4.4rem)] font-semibold leading-[1.03] text-white">
+                Your company doesn’t need more tools.
+                <span className="block text-neutral-300 font-light">
+                  It needs a reliable automation capability.
+                </span>
+              </h1>
 
-                <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">Recommendation</div>
-                      <div className="mt-1 text-sm text-neutral-100">{model.recommended}</div>
-                      <div className="mt-2 text-[12px] leading-relaxed text-neutral-400">
-                        Built inside your environment. Governed behavior. Expand workflow by workflow.
-                      </div>
-                    </div>
+              <p className="mt-5 max-w-xl text-[14px] leading-relaxed text-neutral-200 md:text-[15px]">
+                REZIIIX builds an <span className="text-white">AI factory inside your company</span>:
+                a governed fabric of agents, integrations, and policies that turns messy inputs into traceable outcomes.
+              </p>
 
-                    <label className="flex items-center gap-2 text-[11px] text-neutral-300">
-                      <input
-                        type="checkbox"
-                        checked={copilot}
-                        onChange={(e) => setCopilot(e.target.checked)}
-                        className="h-4 w-4 accent-white"
-                      />
-                      Copilot Studio / M365
-                    </label>
-                  </div>
-
-                  <div className="mt-4 space-y-2">
-                    <Slider label="Workflow complexity" value={complexity} onChange={setComplexity} />
-                    <Slider label="Risk / compliance sensitivity" value={risk} onChange={setRisk} />
-                    <Slider label="Integration readiness" value={integration} onChange={setIntegration} />
-                  </div>
-
-                  <div className="mt-4 rounded-xl border border-white/10 bg-black/40 p-3">
-                    <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">Key controls</div>
-                    <ul className="mt-2 space-y-1 text-[12px] text-neutral-200">
-                      {model.keyControls.map((c, idx) => (
-                        <li key={idx} className="flex gap-2">
-                          <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-sky-400" />
-                          <span>{c}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <div className="mt-3 text-[11px] text-neutral-500">
-                      Optional: Reziiix can run a workshop so teams learn to build and operate Copilot Studio / M365 agents safely.
-                    </div>
-
-                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-black/50">
-                      <motion.div
-                        className="h-full bg-white/70"
-                        animate={{ x: ["-40%", "140%"], opacity: [0.2, 0.8, 0.2] }}
-                        transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
-                        style={{ width: "35%" }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Tag>Audit trails</Tag>
-                    <Tag>Confidence gating</Tag>
-                    <Tag>Human handoffs</Tag>
-                    <Tag>Policy-first</Tag>
-                  </div>
-                </div>
+              <div className="mt-7 flex flex-wrap items-center gap-3">
+                <button
+                  className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-black hover:bg-neutral-200"
+                  onClick={() => scrollToId("story")}
+                  type="button"
+                >
+                  See the story
+                </button>
+                <button
+                  className="rounded-full border border-white/12 bg-white/5 px-5 py-2 text-sm text-neutral-200 hover:border-white/20"
+                  onClick={() => scrollToId("process")}
+                  type="button"
+                >
+                  How it ships
+                </button>
+                <span className="text-[11px] text-neutral-500">Remote • global teams • enterprise-first</span>
               </div>
             </div>
 
-            <div className="mt-3 text-[11px] text-neutral-500">Not a chat demo. A control model for production automation.</div>
+            {/* HERO SIDE: a single clean “card”, not many widgets */}
+            <div className="relative">
+              <div className="absolute -inset-6 rounded-[28px] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_65%)] blur-2xl" />
+              <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/55 backdrop-blur-xl">
+                <div className="border-b border-white/10 bg-white/5 px-5 py-4">
+                  <div className="text-[10px] uppercase tracking-[0.28em] text-neutral-400">What you get</div>
+                  <div className="mt-2 text-base text-white">A running system with ownership</div>
+                </div>
+
+                <div className="p-5 space-y-4">
+                  <AwardRow k="01" title="A governed agent fabric" body="Integrations, retrieval, tools, and policies aligned to your stack." />
+                  <AwardRow k="02" title="Audit trails and control" body="Logs, confidence gating, escalation rules, and clear handoffs." />
+                  <AwardRow k="03" title="A pilot that works" body="Ship one workflow end-to-end, then expand responsibly." />
+
+                  <div className="pt-2 flex flex-wrap gap-2">
+                    <PillBadge pill={{ label: "Microsoft-native option", tone: "mint" }} />
+                    <PillBadge pill={{ label: "Custom deployment", tone: "ink" }} />
+                    <PillBadge pill={{ label: "Workshop available", tone: "amber" }} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 text-[11px] text-neutral-500">
+                Clean narrative. One card. No clutter.
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* MODEL */}
-      <section id="model" className="border-b border-white/10">
-        <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
+      {/* STORY */}
+      <section id="story" className="relative border-t border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
           <div className="grid gap-10 md:grid-cols-[0.9fr,1.1fr]">
             <div>
-              <div className="text-[11px] uppercase tracking-[0.26em] text-neutral-500">The model</div>
-              <h2 className="mt-3 text-2xl font-medium md:text-3xl">Input → Fabric → Output</h2>
-              <p className="mt-4 text-sm leading-relaxed text-neutral-300">
-                A factory is a governed fabric of agents, tools, and controls. It turns messy inputs into traceable outputs with predictable behavior.
+              <div className="text-[11px] uppercase tracking-[0.30em] text-neutral-500">The story</div>
+              <h2 className="mt-4 text-2xl font-medium md:text-3xl">From scattered work to predictable outcomes</h2>
+              <p className="mt-4 text-[13px] leading-relaxed text-neutral-300">
+                Most “AI tools” create more work: you still copy/paste, you still verify, you still route.
+                We build a system that does the unglamorous operations—quietly, visibly, and safely.
               </p>
-
-              <div className="mt-7 space-y-3">
-                <MiniRule title="Evidence over vibes">Agents link decisions back to sources, events, and policies.</MiniRule>
-                <MiniRule title="Safe by default">Start with read-only + drafting, then graduate to scoped actions.</MiniRule>
-                <MiniRule title="Humans remain owners">Confidence gating and approvals keep responsibility clear.</MiniRule>
-              </div>
             </div>
 
-            <Diagram />
+            <div className="grid gap-4 md:grid-cols-2">
+              {modules.map((m) => (
+                <article
+                  key={m.title}
+                  className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur hover:border-white/20 transition"
+                >
+                  <div className="text-[12px] font-medium text-white">{m.title}</div>
+                  <div className="mt-1 text-[11px] uppercase tracking-[0.22em] text-neutral-500">{m.subtitle}</div>
+                  <p className="mt-3 text-[13px] leading-relaxed text-neutral-300">{m.body}</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {m.pillars.map((p) => (
+                      <PillBadge key={p.label} pill={p} />
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PROCESS */}
+      <section id="process" className="relative border-t border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
+          <div className="flex items-end justify-between gap-6">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.30em] text-neutral-500">Process</div>
+              <h2 className="mt-4 text-2xl font-medium md:text-3xl">Designed to ship, not to impress</h2>
+            </div>
+            <div className="hidden md:block text-[12px] text-neutral-500 max-w-md">
+              A calm timeline with one goal: a working pilot with governance, then scale.
+            </div>
+          </div>
+
+          <div className="mt-10 grid gap-4 md:grid-cols-4">
+            {steps.map((s) => (
+              <div key={s.k} className="rounded-2xl border border-white/10 bg-black/35 p-5">
+                <div className="text-[10px] uppercase tracking-[0.30em] text-neutral-500">{s.k}</div>
+                <div className="mt-2 text-[13px] font-medium text-white">{s.title}</div>
+                <div className="mt-3 text-[13px] leading-relaxed text-neutral-300">{s.body}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+            <div className="grid gap-8 md:grid-cols-[1fr,1fr] md:items-center">
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.30em] text-neutral-500">Guardrails</div>
+                <div className="mt-3 text-xl text-white">Safe defaults, explicit escalation</div>
+                <p className="mt-3 text-[13px] leading-relaxed text-neutral-300">
+                  If confidence is low, data is incomplete, or policy boundaries are reached—
+                  the system escalates with a structured brief and suggested next steps.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
+                <div className="text-[10px] uppercase tracking-[0.28em] text-neutral-500">Escalation rule</div>
+                <div className="mt-2 text-[13px] text-neutral-200">
+                  If confidence &lt; 0.85 → human review
+                </div>
+                <div className="mt-3 h-px bg-white/10" />
+                <ul className="mt-3 space-y-2 text-[12px] text-neutral-300">
+                  <li className="flex gap-2">
+                    <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    Include evidence links and extracted fields
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    Suggest 2–3 resolution options
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    Preserve audit log of decisions
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* PATTERNS */}
-      <section id="cases" className="border-b border-white/10">
-        <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <div className="text-[11px] uppercase tracking-[0.26em] text-neutral-500">Patterns</div>
-              <h2 className="mt-3 text-2xl font-medium md:text-3xl">What the factory produces</h2>
-            </div>
-            <div className="max-w-md text-[12px] leading-relaxed text-neutral-400">
-              No logo wall. Just repeatable patterns that adapt to your tools and constraints.
-            </div>
-          </div>
+      <section id="patterns" className="relative border-t border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
+          <div className="text-[11px] uppercase tracking-[0.30em] text-neutral-500">Patterns</div>
+          <h2 className="mt-4 text-2xl font-medium md:text-3xl">Start where leverage is immediate</h2>
+          <p className="mt-4 max-w-2xl text-[13px] leading-relaxed text-neutral-300">
+            We often begin with triage + synthesis (routing, summaries, briefs) because it creates real value without risky write actions.
+            Then we graduate to scoped execution.
+          </p>
 
           <div className="mt-10 grid gap-4 md:grid-cols-3">
-            {useCases.map((c) => (
-              <div
-                key={c.title}
-                className="group rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur transition hover:border-white/20"
-              >
-                <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">{c.area}</div>
-                <div className="mt-2 text-base font-medium text-white">{c.title}</div>
-                <div className="mt-3 text-[13px] leading-relaxed text-neutral-300">{c.desc}</div>
-
-                <div className="mt-4 text-[12px] text-neutral-400">Outcome</div>
-                <div className="mt-1 text-[13px] text-neutral-200">{c.result}</div>
-
+            {[
+              {
+                t: "Triage fabric",
+                b: "Classify inbound requests, route by policy/owner, attach structured summaries, track SLAs.",
+                p: ["Email", "Service desk", "Forms"],
+              },
+              {
+                t: "Decision briefs",
+                b: "Transform long threads and documents into concise, citeable briefs with options and tradeoffs.",
+                p: ["Leadership", "Ops", "Compliance"],
+              },
+              {
+                t: "Scoped execution",
+                b: "Run approved actions inside your stack—ticket updates, drafts, status reports—within guardrails.",
+                p: ["CRM", "Jira", "M365"],
+              },
+            ].map((c) => (
+              <div key={c.t} className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+                <div className="text-[13px] font-medium text-white">{c.t}</div>
+                <div className="mt-3 text-[13px] leading-relaxed text-neutral-300">{c.b}</div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {c.pills.map((p) => (
-                    <PillBadge key={p.label} pill={p} />
+                  {c.p.map((x) => (
+                    <span
+                      key={x}
+                      className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-neutral-300"
+                    >
+                      {x}
+                    </span>
                   ))}
                 </div>
-
-                <div className="mt-5 h-px bg-white/10" />
-                <div className="mt-4 text-[11px] text-neutral-500">Deployed inside your environment — or delivered as a managed pilot.</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* PILOT */}
-      <section id="pilot" className="border-b border-white/10">
-        <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-          <div className="grid gap-10 md:grid-cols-[1fr,1fr]">
+      {/* WORKSHOP */}
+      <section id="workshop" className="relative border-t border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
+          <div className="grid gap-10 md:grid-cols-[1fr,1fr] md:items-center">
             <div>
-              <div className="text-[11px] uppercase tracking-[0.26em] text-neutral-500">Pilot</div>
-              <h2 className="mt-3 text-2xl font-medium md:text-3xl">Start small. Ship something real.</h2>
-              <p className="mt-4 text-sm leading-relaxed text-neutral-300">
-                Most engagements begin with one workflow. We ship it into production with logs, gating, and operational ownership — then expand responsibly.
+              <div className="text-[11px] uppercase tracking-[0.30em] text-neutral-500">Workshop</div>
+              <h2 className="mt-4 text-2xl font-medium md:text-3xl">Enable your team to operate the factory</h2>
+              <p className="mt-4 text-[13px] leading-relaxed text-neutral-300">
+                If you want internal capability—not dependence—we can run a hands-on workshop to teach your team
+                how to build and govern Copilot Studio / M365 agents safely.
               </p>
 
-              <div className="mt-8 space-y-3">
-                {timeline.map((s) => (
-                  <div key={s.week} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
-                    <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">{s.week}</div>
-                    <div className="mt-1 text-sm font-medium text-neutral-100">{s.title}</div>
-                    <div className="mt-2 text-[13px] leading-relaxed text-neutral-300">{s.desc}</div>
-                  </div>
-                ))}
+              <div className="mt-6 flex flex-wrap gap-2">
+                <PillBadge pill={{ label: "Copilot Studio", tone: "mint" }} />
+                <PillBadge pill={{ label: "M365 agents", tone: "mint" }} />
+                <PillBadge pill={{ label: "Governance + risk", tone: "amber" }} />
+                <PillBadge pill={{ label: "Operational playbooks", tone: "violet" }} />
               </div>
             </div>
 
-            {/* CONTACT */}
-            <div id="contact" className="relative">
-              <div className="absolute -inset-6 rounded-[28px] bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.14),transparent_60%)] blur-2xl" />
-              <div className="relative rounded-[24px] border border-white/10 bg-black/60 p-5 backdrop-blur-xl">
-                <div className="text-[10px] uppercase tracking-[0.26em] text-neutral-400">Contact</div>
-                <div className="mt-2 text-xl font-medium text-white">Bring one messy workflow.</div>
-                <div className="mt-3 text-[13px] leading-relaxed text-neutral-300">
-                  Tell us what’s slow, fragile, or repetitive. We’ll reply with a concrete agent concept, deployment approach, and what “production” means in your environment.
-                </div>
-
-                <div className="mt-6 space-y-3">
-                  <input
-                    placeholder="Name"
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none focus:border-white/25"
-                  />
-                  <input
-                    placeholder="Work email"
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none focus:border-white/25"
-                  />
-                  <textarea
-                    placeholder="Describe the workflow..."
-                    className="h-28 w-full resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none focus:border-white/25"
-                  />
-
-                  <button className="w-full rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-neutral-200">
-                    Send (static form)
-                  </button>
-
-                  <div className="text-[11px] text-neutral-500">
-                    Email works too: <span className="text-neutral-200">hello@reziiix.com</span>
-                  </div>
-
-                  <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">Operational promise</div>
-                    <div className="mt-2 text-[13px] leading-relaxed text-neutral-300">
-                      Agents ship with audit trails, escalation paths, and clear ownership. No mystery behavior. No hidden automation.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 text-center text-[11px] text-neutral-600">
-                © {new Date().getFullYear()} REZIIIX • Blueprint Edition
-              </div>
+            <div className="rounded-2xl border border-white/10 bg-black/35 p-6">
+              <div className="text-[10px] uppercase tracking-[0.30em] text-neutral-500">Typical agenda</div>
+              <ul className="mt-4 space-y-3 text-[13px] text-neutral-300">
+                <li className="flex gap-2">
+                  <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-white/60" />
+                  Designing agent boundaries and safe tool access
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-white/60" />
+                  Confidence thresholds + escalation patterns
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-white/60" />
+                  Logging, auditability, and owner handoff
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-white/60" />
+                  A working internal prototype by the end
+                </li>
+              </ul>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ⌘K Command Palette */}
+      {/* FAQ */}
+      <section id="faq" className="relative border-t border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
+          <div className="text-[11px] uppercase tracking-[0.30em] text-neutral-500">FAQ</div>
+          <h2 className="mt-4 text-2xl font-medium md:text-3xl">The questions that matter</h2>
+
+          <div className="mt-10 grid gap-4 md:grid-cols-2">
+            {faqs.map((f) => (
+              <details key={f.q} className="group rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+                <summary className="cursor-pointer list-none text-[13px] font-medium text-white">
+                  <div className="flex items-center justify-between gap-3">
+                    <span>{f.q}</span>
+                    <span className="text-neutral-500 group-open:rotate-45 transition">+</span>
+                  </div>
+                </summary>
+                <div className="mt-3 text-[13px] leading-relaxed text-neutral-300">{f.a}</div>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CONTACT */}
+      <section id="contact" className="relative border-t border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
+          <div className="grid gap-10 md:grid-cols-[1.05fr,0.95fr] md:items-start">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.30em] text-neutral-500">Contact</div>
+              <h2 className="mt-4 text-2xl font-medium md:text-3xl">Bring one workflow.</h2>
+              <p className="mt-4 max-w-xl text-[13px] leading-relaxed text-neutral-300">
+                Describe one process that’s slow, repetitive, or fragile. We’ll respond with a concrete agent concept,
+                a deployment approach, and what “production” means for your environment.
+              </p>
+
+              <div className="mt-8 rounded-2xl border border-white/10 bg-black/35 p-5">
+                <div className="text-[10px] uppercase tracking-[0.30em] text-neutral-500">Email</div>
+                <div className="mt-2 text-[14px] text-white">hello@reziiix.com</div>
+                <div className="mt-2 text-[12px] text-neutral-500">Or use the form — it’s intentionally static for now.</div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+              <input
+                className="w-full rounded-xl border border-white/10 bg-black/35 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none focus:border-white/20"
+                placeholder="Name"
+              />
+              <input
+                className="mt-3 w-full rounded-xl border border-white/10 bg-black/35 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none focus:border-white/20"
+                placeholder="Work email"
+              />
+              <textarea
+                className="mt-3 h-28 w-full resize-none rounded-xl border border-white/10 bg-black/35 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none focus:border-white/20"
+                placeholder="Describe the workflow..."
+              />
+              <button className="mt-4 w-full rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-neutral-200">
+                Send (static)
+              </button>
+
+              <div className="mt-4 text-[11px] text-neutral-500">
+                Want internal capability? Ask about the Copilot Studio / M365 workshop.
+              </div>
+            </div>
+          </div>
+
+          <footer className="mt-12 text-center text-[11px] text-neutral-600">
+            © {new Date().getFullYear()} REZIIIX
+          </footer>
+        </div>
+      </section>
+
       <CommandPalette
         open={paletteOpen}
-        query={query}
-        setQuery={setQuery}
-        actions={filteredActions}
-        onClose={closePalette}
+        query={q}
+        setQuery={setQ}
+        actions={filtered}
+        onClose={() => {
+          setPaletteOpen(false);
+          setQ("");
+        }}
         onRun={(run) => {
           run();
-          closePalette();
+          setPaletteOpen(false);
+          setQ("");
         }}
       />
     </main>
   );
 }
 
-/* ---------- Command Palette ---------- */
+/* ---------- components ---------- */
+
+function NavLink({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="hover:text-white transition">
+      {children}
+    </button>
+  );
+}
+
+function AwardRow({ k, title, body }: { k: string; title: string; body: string }) {
+  return (
+    <div className="flex gap-4">
+      <div className="mt-0.5 h-7 w-7 shrink-0 rounded-full border border-white/10 bg-white/5 flex items-center justify-center text-[10px] uppercase tracking-[0.22em] text-neutral-300">
+        {k}
+      </div>
+      <div>
+        <div className="text-[13px] font-medium text-white">{title}</div>
+        <div className="mt-1 text-[12px] leading-relaxed text-neutral-300">{body}</div>
+      </div>
+    </div>
+  );
+}
+
+function PillBadge({ pill }: { pill: Pill }) {
+  const tone =
+    pill.tone === "mint"
+      ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-200"
+      : pill.tone === "amber"
+      ? "border-amber-300/25 bg-amber-300/10 text-amber-200"
+      : pill.tone === "violet"
+      ? "border-violet-300/25 bg-violet-300/10 text-violet-200"
+      : "border-white/10 bg-black/30 text-neutral-300";
+
+  return <span className={cx("rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.18em]", tone)}>{pill.label}</span>;
+}
+
+/* ---------- Command Palette (lightweight) ---------- */
 
 function CommandPalette({
   open,
@@ -655,15 +678,8 @@ function CommandPalette({
           exit={{ opacity: 0 }}
           onMouseDown={onClose}
         >
-          {/* backdrop */}
-          <motion.div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          />
+          <motion.div className="absolute inset-0 bg-black/70 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
 
-          {/* panel */}
           <motion.div
             onMouseDown={(e) => e.stopPropagation()}
             initial={{ y: 18, opacity: 0, scale: 0.98 }}
@@ -676,7 +692,7 @@ function CommandPalette({
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.26em] text-neutral-400">Command</div>
-                  <div className="text-xs text-neutral-200">Navigate • presets • toggles</div>
+                  <div className="text-xs text-neutral-200">Navigate</div>
                 </div>
                 <div className="text-[11px] text-neutral-500">Esc to close</div>
               </div>
@@ -687,15 +703,13 @@ function CommandPalette({
                 autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Type a command… (e.g., model, preset, copilot)"
+                placeholder="Type… (e.g., process, contact)"
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none focus:border-white/20"
               />
 
               <div className="mt-3 max-h-[320px] overflow-auto pr-1">
                 {actions.length === 0 ? (
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-neutral-400">
-                    No matches.
-                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-neutral-400">No matches.</div>
                 ) : (
                   <div className="space-y-2">
                     {actions.map((a, idx) => {
@@ -713,11 +727,7 @@ function CommandPalette({
                         >
                           <div className="flex items-center justify-between gap-3">
                             <div className="text-sm text-neutral-100">{a.label}</div>
-                            {a.hint && (
-                              <div className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">
-                                {a.hint}
-                              </div>
-                            )}
+                            {a.hint && <div className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">{a.hint}</div>}
                           </div>
                         </button>
                       );
@@ -736,128 +746,4 @@ function CommandPalette({
       )}
     </AnimatePresence>
   );
-}
-
-/* ---------- UI atoms ---------- */
-
-function StatCard({ label, value, hint }: { label: string; value: string; hint: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">{label}</div>
-      <div className="mt-2 text-xl font-semibold text-white">{value}</div>
-      <div className="mt-2 text-[12px] leading-relaxed text-neutral-400">{hint}</div>
-    </div>
-  );
-}
-
-function Slider({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div>
-      <div className="flex items-center justify-between text-[11px] text-neutral-400">
-        <span>{label}</span>
-        <span className="text-neutral-200">{value}</span>
-      </div>
-      <input
-        type="range"
-        min={0}
-        max={100}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="mt-2 w-full accent-white"
-      />
-    </div>
-  );
-}
-
-function Tag({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-neutral-300">
-      {children}
-    </span>
-  );
-}
-
-function PillBadge({ pill }: { pill: Pill }) {
-  const tone =
-    pill.tone === "accent"
-      ? "border-sky-400/30 bg-sky-400/10 text-sky-200"
-      : pill.tone === "warning"
-      ? "border-amber-300/30 bg-amber-300/10 text-amber-200"
-      : "border-white/10 bg-black/30 text-neutral-300";
-
-  return (
-    <span className={cx("rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.18em]", tone)}>
-      {pill.label}
-    </span>
-  );
-}
-
-function MiniRule({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
-      <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">{title}</div>
-      <div className="mt-2 text-[13px] leading-relaxed text-neutral-300">{children}</div>
-    </div>
-  );
-}
-
-function Diagram() {
-  return (
-    <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/60 p-6 backdrop-blur-xl">
-      <div className="text-[10px] uppercase tracking-[0.26em] text-neutral-400">System blueprint</div>
-      <div className="mt-2 text-sm text-neutral-200">A governed fabric of agents</div>
-
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <DiagramNode title="Inputs" body="Email • tickets • docs • metrics • chat" />
-        <DiagramNode title="Agent fabric" body="Tools • memory • rules • confidence gating" strong />
-        <DiagramNode title="Outputs" body="Drafts • tickets • updates • reports • runbooks" />
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="text-[12px] text-neutral-300">
-            <span className="text-neutral-100">Key idea:</span> decisions remain traceable, actions remain controllable.
-          </div>
-          <motion.div
-            className="h-1.5 w-40 overflow-hidden rounded-full bg-black/50"
-            initial={{ opacity: 0.9 }}
-            animate={{ opacity: [0.6, 0.95, 0.6] }}
-            transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <motion.div
-              className="h-full w-1/3 bg-white/70"
-              animate={{ x: ["-40%", "140%"] }}
-              transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
-            />
-          </motion.div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DiagramNode({ title, body, strong }: { title: string; body: string; strong?: boolean }) {
-  return (
-    <div
-      className={cx(
-        "rounded-2xl border p-4",
-        strong ? "border-white/20 bg-white/5" : "border-white/10 bg-black/30"
-      )}
-    >
-      <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">{title}</div>
-      <div className="mt-2 text-[13px] leading-relaxed text-neutral-300">{body}</div>
-    </div>
-  );
-}
-
-function rand(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
