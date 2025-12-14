@@ -20,7 +20,7 @@
 }
 
 body {
-  background-color: transparent;
+  background: transparent;
   color: inherit;
   font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont,
     "SF Pro Text", "SF Pro Display", sans-serif;

@@ -1,7 +1,13 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "framer-motion";
 
 type Theme = {
   name: string;
@@ -62,10 +68,6 @@ function scrollToId(id: string) {
   window.scrollTo({ top: y, behavior: "smooth" });
 }
 
-function clamp(n: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, n));
-}
-
 /** --------- MAIN --------- */
 
 export default function HomePage() {
@@ -77,7 +79,8 @@ export default function HomePage() {
   // subtle cursor glow (not a “feature”, just polish)
   const [cursor, setCursor] = useState({ x: 0, y: 0, on: false });
   useEffect(() => {
-    const mm = (e: MouseEvent) => setCursor({ x: e.clientX, y: e.clientY, on: true });
+    const mm = (e: MouseEvent) =>
+      setCursor({ x: e.clientX, y: e.clientY, on: true });
     const leave = () => setCursor((p) => ({ ...p, on: false }));
     window.addEventListener("mousemove", mm);
     window.addEventListener("mouseleave", leave);
@@ -115,7 +118,11 @@ export default function HomePage() {
         title: "Automation Systems",
         subtitle: "End-to-end capability, not a demo.",
         body: "We design and ship automation that behaves like real software: measurable, maintainable, and owned by your team over time.",
-        bullets: ["Production-grade build", "Clear control & observability", "Integrates into your tools"],
+        bullets: [
+          "Production-grade build",
+          "Clear control & observability",
+          "Integrates into your tools",
+        ],
         tag: "Core",
       },
       {
@@ -163,11 +170,13 @@ export default function HomePage() {
     []
   );
 
+  // hero “paper sheen” (crazy subtle)
+  const { scrollY } = useScroll();
+  const sheenX = useTransform(scrollY, [0, 600], ["-25%", "125%"]);
+  const sheenOpacity = useTransform(scrollY, [0, 400], [0.45, 0.12]);
+
   return (
-    <main
-      style={{ background: theme.bg, color: theme.ink }}
-      className="min-h-screen"
-    >
+    <main style={{ background: theme.bg, color: theme.ink }} className="min-h-screen">
       {/* cursor ambient */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-[5]">
         <motion.div
@@ -177,7 +186,7 @@ export default function HomePage() {
             y: cursor.y - 240,
           }}
           transition={{ type: "spring", stiffness: 220, damping: 30, mass: 0.6 }}
-          className="absolute h-[480px] w-[480px] rounded-full blur-3xl"
+          className="absolute h-[520px] w-[520px] rounded-full blur-3xl"
           style={{
             background: `radial-gradient(circle at 30% 30%, ${theme.a}22, transparent 60%),
                          radial-gradient(circle at 70% 40%, ${theme.b}22, transparent 60%),
@@ -189,7 +198,10 @@ export default function HomePage() {
       {/* Top nav */}
       <header
         className="sticky top-0 z-50 backdrop-blur-xl"
-        style={{ background: `${theme.bg}cc`, borderBottom: `1px solid ${theme.border}` }}
+        style={{
+          background: `${theme.bg}cc`,
+          borderBottom: `1px solid ${theme.border}`,
+        }}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <button onClick={() => scrollToId("top")} className="flex items-center gap-3">
@@ -212,13 +224,21 @@ export default function HomePage() {
             <NavBtn theme={theme} active={active === "what"} onClick={() => scrollToId("what")}>
               What
             </NavBtn>
-            <NavBtn theme={theme} active={active === "ecosystem"} onClick={() => scrollToId("ecosystem")}>
+            <NavBtn
+              theme={theme}
+              active={active === "ecosystem"}
+              onClick={() => scrollToId("ecosystem")}
+            >
               Ecosystem
             </NavBtn>
             <NavBtn theme={theme} active={active === "offers"} onClick={() => scrollToId("offers")}>
               Offers
             </NavBtn>
-            <NavBtn theme={theme} active={active === "contact"} onClick={() => scrollToId("contact")}>
+            <NavBtn
+              theme={theme}
+              active={active === "contact"}
+              onClick={() => scrollToId("contact")}
+            >
               Contact
             </NavBtn>
           </nav>
@@ -228,9 +248,13 @@ export default function HomePage() {
               type="button"
               onClick={() => setT((x) => x + 1)}
               className="rounded-full px-3 py-2 text-[12px] transition"
-              style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
+              style={{
+                border: `1px solid ${theme.border}`,
+                background: "rgba(255,255,255,0.55)",
+              }}
+              title="Switch theme"
             >
-              Theme
+              Theme: {theme.name}
             </button>
             <button
               type="button"
@@ -251,6 +275,18 @@ export default function HomePage() {
             className="relative overflow-hidden rounded-[36px] p-7 md:p-10"
             style={{ border: `1px solid ${theme.border}`, background: theme.card }}
           >
+            {/* crazy: sheen pass */}
+            <motion.div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 w-[40%] skew-x-[-18deg] blur-2xl"
+              style={{
+                left: sheenX,
+                opacity: sheenOpacity,
+                background:
+                  "linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent)",
+              }}
+            />
+
             {/* top-right stamp */}
             <div
               className="absolute right-6 top-6 hidden md:flex items-center gap-2 rounded-full px-3 py-2"
@@ -270,7 +306,16 @@ export default function HomePage() {
               className="text-[clamp(2.8rem,6.0vw,5.6rem)] font-semibold leading-[0.92] tracking-[-0.04em]"
             >
               Automation, built like{" "}
-              <span style={{ color: theme.a }}>a product</span>.
+              <span
+                style={{
+                  background: `linear-gradient(90deg, ${theme.a}, ${theme.b}, ${theme.c})`,
+                  WebkitBackgroundClip: "text",
+                  color: "transparent",
+                }}
+              >
+                a product
+              </span>
+              .
             </motion.h1>
 
             <div className="mt-6 grid gap-8 md:grid-cols-[1.05fr,0.95fr] md:items-end">
@@ -291,7 +336,11 @@ export default function HomePage() {
                   <button
                     onClick={() => scrollToId("what")}
                     className="rounded-2xl px-6 py-3 text-sm transition"
-                    style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)", color: theme.ink }}
+                    style={{
+                      border: `1px solid ${theme.border}`,
+                      background: "rgba(255,255,255,0.55)",
+                      color: theme.ink,
+                    }}
                   >
                     See what we build
                   </button>
@@ -305,7 +354,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* right: visual “brand block” (no workflow UI) */}
+              {/* right: visual “brand block” */}
               <div
                 className="relative overflow-hidden rounded-[28px] p-5"
                 style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.62)" }}
@@ -340,16 +389,21 @@ export default function HomePage() {
             </div>
 
             {/* bottom stripe */}
-            <div className="mt-9 flex items-center justify-between gap-4 border-t pt-5"
-                 style={{ borderColor: theme.border, color: theme.muted }}>
+            <div
+              className="mt-9 flex items-center justify-between gap-4 border-t pt-5"
+              style={{ borderColor: theme.border, color: theme.muted }}
+            >
               <span className="text-[11px] uppercase tracking-[0.28em]">REZIIIX</span>
               <span className="text-[11px] uppercase tracking-[0.28em]">Automation studio</span>
             </div>
           </div>
         </div>
+
+        {/* crazy add: spec strip right under hero */}
+        <SpecStrip theme={theme} />
       </section>
 
-      {/* WHAT — bento capabilities (opens modal) */}
+      {/* WHAT — bento capabilities */}
       <section id="what" className="border-t" style={{ borderColor: theme.border }}>
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-10 md:grid-cols-[0.95fr,1.05fr] md:items-start">
@@ -365,8 +419,10 @@ export default function HomePage() {
                 Click any tile. This is not a platform UI — it’s a portfolio of what REZIIIX ships.
               </p>
 
-              <div className="mt-8 rounded-3xl p-6"
-                   style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
+              <div
+                className="mt-8 rounded-3xl p-6"
+                style={{ border: `1px solid ${theme.border}`, background: theme.card }}
+              >
                 <div className="text-[11px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
                   Also available
                 </div>
@@ -397,14 +453,20 @@ export default function HomePage() {
                     </div>
                     <span
                       className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                      style={{ color: theme.a, border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
+                      style={{
+                        color: theme.a,
+                        border: `1px solid ${theme.border}`,
+                        background: "rgba(255,255,255,0.55)",
+                      }}
                     >
                       →
                     </span>
                   </div>
 
-                  <div className="mt-6 h-[10px] w-full rounded-full overflow-hidden"
-                       style={{ background: "rgba(0,0,0,0.06)" }}>
+                  <div
+                    className="mt-6 h-[10px] w-full rounded-full overflow-hidden"
+                    style={{ background: "rgba(0,0,0,0.06)" }}
+                  >
                     <div
                       className="h-full rounded-full transition-all group-hover:w-[88%] w-[62%]"
                       style={{ background: `linear-gradient(90deg, ${theme.a}, ${theme.b})` }}
@@ -417,7 +479,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ECOSYSTEM — integration “universe” (no workflow, no steps) */}
+      {/* ECOSYSTEM — FIXED SPACING + CRAZY INTERACTION */}
       <section id="ecosystem" className="border-t" style={{ borderColor: theme.border }}>
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-10 md:grid-cols-[1fr,1fr] md:items-center">
@@ -447,7 +509,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* OFFERS — business clear */}
+      {/* OFFERS */}
       <section id="offers" className="border-t" style={{ borderColor: theme.border }}>
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-10 md:grid-cols-[0.95fr,1.05fr] md:items-start">
@@ -478,7 +540,7 @@ export default function HomePage() {
                 title="Scale Program"
                 price="For teams"
                 body="Multiple systems + stronger integrations + operating rhythm."
-                bullets={["Reusable patterns", "Monitoring mindset", "Team rollout support"]}
+                bullets={["Reusable patterns", "Team rollout support", "Enterprise mindset"]}
                 badge="Scale"
               />
               <OfferCard
@@ -510,8 +572,10 @@ export default function HomePage() {
                 Email is enough. We’ll respond with a concrete plan.
               </p>
 
-              <div className="mt-8 rounded-3xl p-6"
-                   style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
+              <div
+                className="mt-8 rounded-3xl p-6"
+                style={{ border: `1px solid ${theme.border}`, background: theme.card }}
+              >
                 <div className="text-[11px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
                   Email
                 </div>
@@ -549,8 +613,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="rounded-[30px] p-7"
-                 style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
+            <div className="rounded-[30px] p-7" style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
               <div className="text-[11px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
                 Quick note
               </div>
@@ -574,8 +637,10 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="mt-7 flex items-center justify-between rounded-2xl px-4 py-3"
-                   style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}>
+              <div
+                className="mt-7 flex items-center justify-between rounded-2xl px-4 py-3"
+                style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
+              >
                 <span className="text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
                   REZIIIX
                 </span>
@@ -590,6 +655,59 @@ export default function HomePage() {
 
       <CapabilityModal theme={theme} open={open} onClose={() => setOpen(null)} />
     </main>
+  );
+}
+
+/** --------- SPEC STRIP (crazy add) --------- */
+function SpecStrip({ theme }: { theme: Theme }) {
+  const reduceMotion = useReducedMotion();
+  const items = [
+    { k: "Delivery", v: "Pilot → production" },
+    { k: "Integration", v: "Your existing tools" },
+    { k: "Governance", v: "Enterprise-minded" },
+    { k: "Enablement", v: "Workshops available" },
+  ];
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 -mt-7 md:-mt-10 pb-2">
+      <motion.div
+        initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: reduceMotion ? 0.1 : 0.7,
+          ease: [0.2, 1, 0.2, 1],
+          delay: 0.05,
+        }}
+        className="relative overflow-hidden rounded-[32px] p-5 md:p-6"
+        style={{ border: `1px solid ${theme.border}`, background: theme.card }}
+      >
+        <div
+          className="absolute -inset-24 opacity-60 blur-3xl"
+          style={{
+            background: `radial-gradient(circle at 15% 30%, ${theme.a}22, transparent 60%),
+                         radial-gradient(circle at 85% 35%, ${theme.b}22, transparent 60%),
+                         radial-gradient(circle at 55% 90%, ${theme.c}16, transparent 62%)`,
+          }}
+        />
+
+        <div className="relative grid gap-3 md:grid-cols-4">
+          {items.map((x) => (
+            <div
+              key={x.k}
+              className="rounded-2xl px-4 py-3"
+              style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
+            >
+              <div className="text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
+                {x.k}
+              </div>
+              <div className="mt-1 text-[13px] font-semibold" style={{ color: theme.ink }}>
+                {x.v}
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+    </div>
   );
 }
 
@@ -610,9 +728,7 @@ function NavBtn({
     <button
       onClick={onClick}
       className="rounded-full px-3 py-2 text-[12px] transition"
-      style={{
-        color: active ? theme.ink : theme.muted,
-      }}
+      style={{ color: active ? theme.ink : theme.muted }}
     >
       <span className="relative">
         {children}
@@ -631,7 +747,11 @@ function Pill({ theme, children }: { theme: Theme; children: React.ReactNode }) 
   return (
     <span
       className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.22em]"
-      style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)", color: theme.muted }}
+      style={{
+        border: `1px solid ${theme.border}`,
+        background: "rgba(255,255,255,0.55)",
+        color: theme.muted,
+      }}
     >
       {children}
     </span>
@@ -640,7 +760,13 @@ function Pill({ theme, children }: { theme: Theme; children: React.ReactNode }) 
 
 function MiniStat({ theme, k, v }: { theme: Theme; k: string; v: string }) {
   return (
-    <div className="rounded-2xl p-4" style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}>
+    <div
+      className="rounded-2xl p-4"
+      style={{
+        border: `1px solid ${theme.border}`,
+        background: "rgba(255,255,255,0.55)",
+      }}
+    >
       <div className="text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
         {k}
       </div>
@@ -718,8 +844,10 @@ function CapabilityModal({
               </button>
             </div>
 
-            <div className="mt-6 rounded-3xl p-5"
-                 style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}>
+            <div
+              className="mt-6 rounded-3xl p-5"
+              style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
+            >
               <div className="text-[13px] leading-relaxed" style={{ color: theme.muted }}>
                 {open.body}
               </div>
@@ -764,8 +892,7 @@ function OfferCard({
   badge: string;
 }) {
   return (
-    <div className="rounded-[28px] p-6"
-         style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
+    <div className="rounded-[28px] p-6" style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[10px] uppercase tracking-[0.32em]" style={{ color: theme.muted }}>
@@ -830,29 +957,41 @@ function Textarea({ theme, placeholder }: { theme: Theme; placeholder: string })
   );
 }
 
-/** --------- Integration Universe (visual, not a process) --------- */
-
+/** --------- Ecosystem Universe (FIXED SPACING + hover “pop”) --------- */
 function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }) {
   const reduceMotion = useReducedMotion();
+  const [hovered, setHovered] = useState<string | null>(null);
 
-  // distribute labels around a circle + small drift animation
-  const positions = useMemo(() => {
-    const n = items.length;
-    return items.map((_, i) => {
-      const angle = (i / n) * Math.PI * 2;
-      const r = 165 + (i % 3) * 22;
-      return {
-        x: Math.cos(angle) * r,
-        y: Math.sin(angle) * r,
-        d: 5 + (i % 5),
-        delay: (i % 7) * 0.12,
-      };
+  // 3-ring layout to prevent crowding
+  const rings = useMemo(() => {
+    const ringCount = 3;
+    const perRing = Math.ceil(items.length / ringCount);
+
+    const chunks: string[][] = [];
+    for (let i = 0; i < ringCount; i++) {
+      chunks.push(items.slice(i * perRing, (i + 1) * perRing));
+    }
+
+    const radii = [130, 190, 255];
+    const offsets = [0, Math.PI / 10, Math.PI / 7];
+
+    return chunks.map((chunk, ringIdx) => {
+      const n = Math.max(chunk.length, 1);
+      return chunk.map((label, i) => {
+        const angle = (i / n) * Math.PI * 2 + offsets[ringIdx];
+        const r = radii[ringIdx];
+        const d = 6 + ((i + ringIdx) % 6);
+        const delay = ((i * 0.11) + ringIdx * 0.22) % 1.1;
+        return { label, ringIdx, x: Math.cos(angle) * r, y: Math.sin(angle) * r, d, delay };
+      });
     });
   }, [items]);
 
+  const flat = rings.flat();
+
   return (
     <div
-      className="relative h-[440px] md:h-[480px] overflow-hidden rounded-[32px]"
+      className="relative h-[470px] md:h-[520px] overflow-hidden rounded-[32px]"
       style={{ border: `1px solid ${theme.border}`, background: theme.card }}
     >
       <div
@@ -864,10 +1003,26 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
         }}
       />
 
-      {/* center core */}
+      {/* orbit rings */}
+      <div className="pointer-events-none absolute inset-0">
+        <div
+          className="absolute left-1/2 top-1/2 h-[280px] w-[280px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ border: `1px dashed ${theme.border}` }}
+        />
+        <div
+          className="absolute left-1/2 top-1/2 h-[385px] w-[385px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ border: `1px dashed ${theme.border}` }}
+        />
+        <div
+          className="absolute left-1/2 top-1/2 h-[510px] w-[510px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ border: `1px dashed ${theme.border}` }}
+        />
+      </div>
+
+      {/* center */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
         <div
-          className="grid place-items-center rounded-[26px] px-6 py-5"
+          className="grid place-items-center rounded-[26px] px-7 py-6 text-center"
           style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.62)" }}
         >
           <div className="text-[10px] uppercase tracking-[0.32em]" style={{ color: theme.muted }}>
@@ -875,30 +1030,20 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
           </div>
           <div className="mt-2 text-[15px] font-semibold">Integrates into</div>
           <div className="mt-1 text-[13px]" style={{ color: theme.muted }}>
-            your existing tools
+            {hovered ? hovered : "your existing tools"}
           </div>
         </div>
       </div>
 
-      {/* orbit rings */}
-      <div className="pointer-events-none absolute inset-0">
-        <div
-          className="absolute left-1/2 top-1/2 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ border: `1px dashed ${theme.border}` }}
-        />
-        <div
-          className="absolute left-1/2 top-1/2 h-[260px] w-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ border: `1px dashed ${theme.border}` }}
-        />
-      </div>
-
       {/* nodes */}
-      {items.map((label, i) => {
-        const p = positions[i];
+      {flat.map((p, i) => {
+        const isHot = hovered === p.label;
         return (
           <motion.div
-            key={label}
+            key={`${p.label}-${i}`}
             className="absolute left-1/2 top-1/2"
+            onMouseEnter={() => setHovered(p.label)}
+            onMouseLeave={() => setHovered(null)}
             initial={false}
             animate={
               reduceMotion
@@ -908,16 +1053,27 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
             transition={
               reduceMotion
                 ? { duration: 0.1 }
-                : { duration: 6 + (i % 6), repeat: Infinity, ease: "easeInOut", delay: p.delay }
+                : { duration: 7 + (i % 6), repeat: Infinity, ease: "easeInOut", delay: p.delay }
             }
           >
-            <div
-              className="whitespace-nowrap rounded-full px-3 py-2 text-[11px] uppercase tracking-[0.18em]"
-              style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.62)", color: theme.muted }}
+            <motion.div
+              className="whitespace-nowrap rounded-full px-3.5 py-2 text-[11px] uppercase tracking-[0.18em] shadow-[0_18px_50px_rgba(0,0,0,0.06)]"
+              animate={isHot ? { scale: 1.07 } : { scale: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 22 }}
+              style={{
+                border: `1px solid ${theme.border}`,
+                background: "rgba(255,255,255,0.62)",
+                color: theme.muted,
+              }}
             >
-              <span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ background: i % 3 === 0 ? theme.a : i % 3 === 1 ? theme.b : theme.c }} />
-              {label}
-            </div>
+              <span
+                className="mr-2 inline-block h-2 w-2 rounded-full"
+                style={{
+                  background: i % 3 === 0 ? theme.a : i % 3 === 1 ? theme.b : theme.c,
+                }}
+              />
+              {p.label}
+            </motion.div>
           </motion.div>
         );
       })}
