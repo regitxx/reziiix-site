@@ -1,8 +1,14 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion, useScroll } from "framer-motion";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  useScroll,
+} from "framer-motion";
 
+/** ---------------- TYPES / THEMES ---------------- */
 
 type Theme = {
   name: string;
@@ -52,6 +58,16 @@ const THEMES: Theme[] = [
   },
 ];
 
+type Capability = {
+  title: string;
+  subtitle: string;
+  body: string;
+  bullets: string[];
+  tag: string;
+};
+
+/** ---------------- HELPERS ---------------- */
+
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
@@ -63,7 +79,30 @@ function scrollToId(id: string) {
   window.scrollTo({ top: y, behavior: "smooth" });
 }
 
-/** --------- MAIN --------- */
+/** ---------------- THEME BACKGROUND (FIXES GLITCH BLOCKS) ---------------- */
+
+function ThemeBackground({ theme }: { theme: Theme }) {
+  return (
+    <motion.div
+      key={theme.name}
+      className="fixed inset-0 -z-10"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.55, ease: "easeOut" }}
+      style={{
+        background: `
+          radial-gradient(1100px 520px at 18% 10%, ${theme.a}18, transparent 60%),
+          radial-gradient(900px 520px at 82% 18%, ${theme.b}14, transparent 62%),
+          radial-gradient(880px 620px at 52% 88%, ${theme.c}12, transparent 68%),
+          ${theme.bg}
+        `,
+      }}
+    />
+  );
+}
+
+/** ---------------- MAIN ---------------- */
 
 export default function HomePage() {
   const reduceMotion = useReducedMotion();
@@ -71,11 +110,10 @@ export default function HomePage() {
   const [t, setT] = useState(0);
   const theme = THEMES[t % THEMES.length];
 
-  // subtle cursor glow (not a “feature”, just polish)
+  // subtle cursor glow for the whole page (calm)
   const [cursor, setCursor] = useState({ x: 0, y: 0, on: false });
   useEffect(() => {
-    const mm = (e: MouseEvent) =>
-      setCursor({ x: e.clientX, y: e.clientY, on: true });
+    const mm = (e: MouseEvent) => setCursor({ x: e.clientX, y: e.clientY, on: true });
     const leave = () => setCursor((p) => ({ ...p, on: false }));
     window.addEventListener("mousemove", mm);
     window.addEventListener("mouseleave", leave);
@@ -104,7 +142,7 @@ export default function HomePage() {
     return () => obs.disconnect();
   }, []);
 
-  // modal for “capabilities”
+  // modal
   const [open, setOpen] = useState<null | Capability>(null);
 
   const capabilities: Capability[] = useMemo(
@@ -113,11 +151,7 @@ export default function HomePage() {
         title: "Automation Systems",
         subtitle: "End-to-end capability, not a demo.",
         body: "We design and ship automation that behaves like real software: measurable, maintainable, and owned by your team over time.",
-        bullets: [
-          "Production-grade build",
-          "Clear control & observability",
-          "Integrates into your tools",
-        ],
+        bullets: ["Production-grade build", "Clear control & observability", "Integrates into your tools"],
         tag: "Core",
       },
       {
@@ -165,14 +199,14 @@ export default function HomePage() {
     []
   );
 
-  // hero “paper sheen” (crazy subtle)
-  const { scrollY } = useScroll();
-  const sheenX = useTransform(scrollY, [0, 600], ["-25%", "125%"]);
-  const sheenOpacity = useTransform(scrollY, [0, 400], [0.45, 0.12]);
-
   return (
     <main style={{ background: theme.bg, color: theme.ink }} className="min-h-screen">
-      {/* cursor ambient */}
+      {/* theme compositor (fixes theme artifacts) */}
+      <AnimatePresence mode="wait">
+        <ThemeBackground theme={theme} />
+      </AnimatePresence>
+
+      {/* cursor ambient (very subtle) */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-[5]">
         <motion.div
           animate={{
@@ -181,22 +215,19 @@ export default function HomePage() {
             y: cursor.y - 240,
           }}
           transition={{ type: "spring", stiffness: 220, damping: 30, mass: 0.6 }}
-          className="absolute h-[520px] w-[520px] rounded-full blur-3xl"
+          className="absolute h-[480px] w-[480px] rounded-full blur-3xl"
           style={{
-            background: `radial-gradient(circle at 30% 30%, ${theme.a}22, transparent 60%),
-                         radial-gradient(circle at 70% 40%, ${theme.b}22, transparent 60%),
-                         radial-gradient(circle at 50% 80%, ${theme.c}16, transparent 62%)`,
+            background: `radial-gradient(circle at 30% 30%, ${theme.a}12, transparent 60%),
+                         radial-gradient(circle at 70% 40%, ${theme.b}10, transparent 60%),
+                         radial-gradient(circle at 50% 80%, ${theme.c}08, transparent 62%)`,
           }}
         />
       </div>
 
-      {/* Top nav */}
+      {/* TOP NAV */}
       <header
         className="sticky top-0 z-50 backdrop-blur-xl"
-        style={{
-          background: `${theme.bg}cc`,
-          borderBottom: `1px solid ${theme.border}`,
-        }}
+        style={{ background: `${theme.bg}cc`, borderBottom: `1px solid ${theme.border}` }}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <button onClick={() => scrollToId("top")} className="flex items-center gap-3">
@@ -219,21 +250,13 @@ export default function HomePage() {
             <NavBtn theme={theme} active={active === "what"} onClick={() => scrollToId("what")}>
               What
             </NavBtn>
-            <NavBtn
-              theme={theme}
-              active={active === "ecosystem"}
-              onClick={() => scrollToId("ecosystem")}
-            >
+            <NavBtn theme={theme} active={active === "ecosystem"} onClick={() => scrollToId("ecosystem")}>
               Ecosystem
             </NavBtn>
             <NavBtn theme={theme} active={active === "offers"} onClick={() => scrollToId("offers")}>
               Offers
             </NavBtn>
-            <NavBtn
-              theme={theme}
-              active={active === "contact"}
-              onClick={() => scrollToId("contact")}
-            >
+            <NavBtn theme={theme} active={active === "contact"} onClick={() => scrollToId("contact")}>
               Contact
             </NavBtn>
           </nav>
@@ -243,11 +266,7 @@ export default function HomePage() {
               type="button"
               onClick={() => setT((x) => x + 1)}
               className="rounded-full px-3 py-2 text-[12px] transition"
-              style={{
-                border: `1px solid ${theme.border}`,
-                background: "rgba(255,255,255,0.55)",
-              }}
-              title="Switch theme"
+              style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
             >
               Theme: {theme.name}
             </button>
@@ -263,63 +282,103 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* HERO — “poster” layout */}
+      {/* HERO (TYPOGRAPHIC / APPLE-ISH) */}
       <section id="top" className="relative">
-        <div className="mx-auto max-w-6xl px-4 py-12 md:py-16">
+        <div className="mx-auto max-w-6xl px-4 py-10 md:py-16">
           <div
-            className="relative overflow-hidden rounded-[36px] p-7 md:p-10"
-            style={{ border: `1px solid ${theme.border}`, background: theme.card }}
+            className="relative overflow-hidden rounded-[40px] p-7 md:p-10"
+            style={{
+              border: `1px solid ${theme.border}`,
+              background: theme.card,
+            }}
           >
-            {/* crazy: sheen pass */}
-            <motion.div
+            {/* “paper” depth */}
+            <div
               aria-hidden
-              className="pointer-events-none absolute inset-y-0 w-[40%] skew-x-[-18deg] blur-2xl"
+              className="pointer-events-none absolute inset-0"
               style={{
-                left: sheenX,
-                opacity: sheenOpacity,
-                background:
-                  "linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent)",
+                background: `
+                  linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.20)),
+                  radial-gradient(820px 420px at 18% 0%, rgba(255,255,255,0.30), transparent 60%),
+                  radial-gradient(720px 420px at 98% 12%, rgba(255,255,255,0.26), transparent 62%)
+                `,
+                opacity: 0.60,
               }}
             />
 
-            {/* top-right stamp */}
-            <div
-              className="absolute right-6 top-6 hidden md:flex items-center gap-2 rounded-full px-3 py-2"
-              style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.6)" }}
-            >
-              <span className="inline-block h-2 w-2 rounded-full" style={{ background: theme.b }} />
-              <span className="text-[10px] uppercase tracking-[0.32em]" style={{ color: theme.muted }}>
-                Studio build
-              </span>
-            </div>
+            {/* top bar */}
+            <div className="relative flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[11px] uppercase tracking-[0.30em]"
+                  style={{
+                    border: `1px solid ${theme.border}`,
+                    background: "rgba(255,255,255,0.60)",
+                    color: theme.muted,
+                  }}
+                >
+                  <span className="h-2 w-2 rounded-full" style={{ background: theme.b }} />
+                  AI automation studio
+                </span>
+                <span
+                  className="hidden sm:inline-flex rounded-full px-3 py-2 text-[11px] uppercase tracking-[0.30em]"
+                  style={{
+                    border: `1px solid ${theme.border}`,
+                    background: "rgba(255,255,255,0.45)",
+                    color: theme.muted,
+                  }}
+                >
+                  built for real teams
+                </span>
+              </div>
 
-            {/* big type */}
-            <motion.h1
-              initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduceMotion ? 0.1 : 0.75, ease: [0.2, 1, 0.2, 1] }}
-              className="text-[clamp(2.8rem,6.0vw,5.6rem)] font-semibold leading-[0.92] tracking-[-0.04em]"
-            >
-              Automation, built like{" "}
-              <span
+              <div
+                className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[11px] uppercase tracking-[0.30em]"
                 style={{
-                  background: `linear-gradient(90deg, ${theme.a}, ${theme.b}, ${theme.c})`,
-                  WebkitBackgroundClip: "text",
-                  color: "transparent",
+                  border: `1px solid ${theme.border}`,
+                  background: "rgba(255,255,255,0.60)",
+                  color: theme.muted,
                 }}
               >
-                a product
-              </span>
-              .
-            </motion.h1>
+                <span className="h-2 w-2 rounded-full" style={{ background: theme.a }} />
+                studio build
+              </div>
+            </div>
 
-            <div className="mt-6 grid gap-8 md:grid-cols-[1.05fr,0.95fr] md:items-end">
+            {/* typography grid */}
+            <div className="relative mt-8 grid gap-10 md:grid-cols-[1.15fr,0.85fr] md:items-start">
+              {/* left */}
               <div>
-                <p className="max-w-xl text-[15px] leading-relaxed" style={{ color: theme.muted }}>
-                  REZIIIX designs and ships automation systems for businesses that want quality, control,
-                  and long-term ownership — not just experiments.
+                <motion.h1
+                  initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: reduceMotion ? 0.1 : 0.8, ease: [0.2, 1, 0.2, 1] }}
+                  className="text-[clamp(2.4rem,5.6vw,5.1rem)] font-semibold leading-[0.92] tracking-[-0.05em]"
+                >
+                  Automation
+                  <span style={{ color: theme.muted }}>—</span>{" "}
+                  built like{" "}
+                  <span className="relative inline-block">
+                    a product
+                    <span
+                      aria-hidden
+                      className="absolute left-0 -bottom-2 h-[8px] w-full rounded-full"
+                      style={{
+                        background: `linear-gradient(90deg, ${theme.a}55, ${theme.b}45, ${theme.c}35)`,
+                        filter: "blur(10px)",
+                        opacity: 0.55,
+                      }}
+                    />
+                  </span>
+                  .
+                </motion.h1>
+
+                <p className="mt-6 max-w-xl text-[15px] leading-relaxed" style={{ color: theme.muted }}>
+                  REZIIIX builds automation systems that plug into your existing tools—so teams can move faster
+                  without adopting another platform.
                 </p>
 
+                {/* actions */}
                 <div className="mt-8 flex flex-wrap items-center gap-3">
                   <button
                     onClick={() => scrollToId("contact")}
@@ -337,68 +396,87 @@ export default function HomePage() {
                       color: theme.ink,
                     }}
                   >
-                    See what we build
+                    What we build
                   </button>
                 </div>
 
-                <div className="mt-8 flex flex-wrap gap-2">
-                  <Pill theme={theme}>Enterprise-friendly</Pill>
-                  <Pill theme={theme}>Integration-first</Pill>
-                  <Pill theme={theme}>Governance-minded</Pill>
-                  <Pill theme={theme}>Workshops available</Pill>
+                {/* micro-proof row */}
+                <div className="mt-9 grid gap-3 md:grid-cols-3">
+                  <HeroProof theme={theme} title="Integrates" desc="M365, Slack, CRM, service desk, internal APIs." dot={theme.b} />
+                  <HeroProof theme={theme} title="Governed" desc="Designed for policies, review, audit trails." dot={theme.a} />
+                  <HeroProof theme={theme} title="Enablement" desc="Workshops for Copilot Studio / M365 agents." dot={theme.c} />
                 </div>
               </div>
 
-              {/* right: visual “brand block” */}
+              {/* right: manifesto card */}
               <div
-                className="relative overflow-hidden rounded-[28px] p-5"
-                style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.62)" }}
+                className="relative overflow-hidden rounded-[30px] p-6 md:p-7"
+                style={{
+                  border: `1px solid ${theme.border}`,
+                  background: "rgba(255,255,255,0.62)",
+                }}
               >
                 <div
-                  className="absolute -inset-16 opacity-60 blur-2xl"
+                  aria-hidden
+                  className="pointer-events-none absolute -inset-16 opacity-60 blur-3xl"
                   style={{
-                    background: `radial-gradient(circle at 20% 15%, ${theme.a}35, transparent 55%),
-                                 radial-gradient(circle at 80% 25%, ${theme.b}30, transparent 55%),
-                                 radial-gradient(circle at 45% 90%, ${theme.c}22, transparent 60%)`,
+                    background: `
+                      radial-gradient(circle at 15% 20%, ${theme.a}20, transparent 55%),
+                      radial-gradient(circle at 90% 25%, ${theme.b}16, transparent 60%),
+                      radial-gradient(circle at 55% 90%, ${theme.c}12, transparent 62%)
+                    `,
                   }}
                 />
+
                 <div className="relative">
                   <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
-                    In one line
+                    The promise
                   </div>
-                  <div className="mt-3 text-[16px] font-semibold leading-snug">
+                  <div className="mt-4 text-[18px] font-semibold leading-snug tracking-[-0.02em]">
                     You own an AI factory inside your company.
                   </div>
-                  <div className="mt-2 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
-                    We build the capability. You keep the control.
+                  <div className="mt-3 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
+                    We build the capability in your environment, aligned with your tools and constraints—
+                    then your team owns it.
                   </div>
 
-                  <div className="mt-6 grid grid-cols-2 gap-3">
-                    <MiniStat theme={theme} k="Build" v="Systems" />
-                    <MiniStat theme={theme} k="Style" v="Calm" />
-                    <MiniStat theme={theme} k="Fit" v="SME → Enterprise" />
-                    <MiniStat theme={theme} k="Output" v="Production" />
+                  <div className="mt-6 grid gap-3">
+                    <HeroLine theme={theme} k="Outcome" v="Less manual work. More control." />
+                    <HeroLine theme={theme} k="Interface" v="Your tools stay the UI." />
+                    <HeroLine theme={theme} k="Path" v="Pilot → scale → enablement." />
+                  </div>
+
+                  <div
+                    className="mt-7 flex items-center justify-between rounded-2xl px-4 py-3"
+                    style={{
+                      border: `1px solid ${theme.border}`,
+                      background: "rgba(255,255,255,0.55)",
+                    }}
+                  >
+                    <span className="text-[10px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
+                      REZIIIX
+                    </span>
+                    <span className="text-[10px] uppercase tracking-[0.30em]" style={{ color: theme.a }}>
+                      calm systems
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* bottom stripe */}
+            {/* footer stripe */}
             <div
-              className="mt-9 flex items-center justify-between gap-4 border-t pt-5"
+              className="relative mt-10 flex items-center justify-between gap-4 border-t pt-5"
               style={{ borderColor: theme.border, color: theme.muted }}
             >
-              <span className="text-[11px] uppercase tracking-[0.28em]">REZIIIX</span>
-              <span className="text-[11px] uppercase tracking-[0.28em]">Automation studio</span>
+              <span className="text-[11px] uppercase tracking-[0.30em]">Singapore · Global</span>
+              <span className="text-[11px] uppercase tracking-[0.30em]">Enterprise-ready builds</span>
             </div>
           </div>
         </div>
-
-        {/* crazy add: spec strip right under hero */}
-        <SpecStrip theme={theme} />
       </section>
 
-      {/* WHAT — bento capabilities */}
+      {/* WHAT */}
       <section id="what" className="border-t" style={{ borderColor: theme.border }}>
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-10 md:grid-cols-[0.95fr,1.05fr] md:items-start">
@@ -407,8 +485,7 @@ export default function HomePage() {
                 What we build
               </div>
               <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                Capabilities you can{" "}
-                <span style={{ color: theme.b }}>deploy</span>.
+                Capabilities you can <span style={{ color: theme.b }}>deploy</span>.
               </h2>
               <p className="mt-6 max-w-md text-[14px] leading-relaxed" style={{ color: theme.muted }}>
                 Click any tile. This is not a platform UI — it’s a portfolio of what REZIIIX ships.
@@ -448,11 +525,7 @@ export default function HomePage() {
                     </div>
                     <span
                       className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                      style={{
-                        color: theme.a,
-                        border: `1px solid ${theme.border}`,
-                        background: "rgba(255,255,255,0.55)",
-                      }}
+                      style={{ color: theme.a, border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
                     >
                       →
                     </span>
@@ -474,7 +547,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ECOSYSTEM — FIXED SPACING + CRAZY INTERACTION */}
+      {/* ECOSYSTEM (NASA WARP) */}
       <section id="ecosystem" className="border-t" style={{ borderColor: theme.border }}>
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-10 md:grid-cols-[1fr,1fr] md:items-center">
@@ -483,12 +556,12 @@ export default function HomePage() {
                 Ecosystem
               </div>
               <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                Built to live in your{" "}
-                <span style={{ color: theme.c }}>stack</span>.
+                Built to live in your <span style={{ color: theme.c }}>stack</span>.
               </h2>
               <p className="mt-6 max-w-md text-[14px] leading-relaxed" style={{ color: theme.muted }}>
-                We integrate into the tools you already use. No new “platform adoption” problem.
+                Hover a tool. The constellation shows how REZIIIX connects into your environment.
               </p>
+
               <div className="mt-8 flex flex-wrap gap-2">
                 <Pill theme={theme}>M365</Pill>
                 <Pill theme={theme}>Copilot Studio</Pill>
@@ -499,7 +572,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <IntegrationUniverse theme={theme} items={integrations} />
+            <IntegrationUniverseNASA theme={theme} items={integrations} />
           </div>
         </div>
       </section>
@@ -513,8 +586,7 @@ export default function HomePage() {
                 Offers
               </div>
               <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                Choose how you want to{" "}
-                <span style={{ color: theme.a }}>engage</span>.
+                Choose how you want to <span style={{ color: theme.a }}>engage</span>.
               </h2>
               <p className="mt-6 max-w-md text-[14px] leading-relaxed" style={{ color: theme.muted }}>
                 Clear packages. No platform fluff.
@@ -535,7 +607,7 @@ export default function HomePage() {
                 title="Scale Program"
                 price="For teams"
                 body="Multiple systems + stronger integrations + operating rhythm."
-                bullets={["Reusable patterns", "Team rollout support", "Enterprise mindset"]}
+                bullets={["Reusable patterns", "Monitoring mindset", "Team rollout support"]}
                 badge="Scale"
               />
               <OfferCard
@@ -560,17 +632,13 @@ export default function HomePage() {
                 Contact
               </div>
               <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                Tell us what you want to{" "}
-                <span style={{ color: theme.b }}>improve</span>.
+                Tell us what you want to <span style={{ color: theme.b }}>improve</span>.
               </h2>
               <p className="mt-6 max-w-md text-[14px] leading-relaxed" style={{ color: theme.muted }}>
                 Email is enough. We’ll respond with a concrete plan.
               </p>
 
-              <div
-                className="mt-8 rounded-3xl p-6"
-                style={{ border: `1px solid ${theme.border}`, background: theme.card }}
-              >
+              <div className="mt-8 rounded-3xl p-6" style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
                 <div className="text-[11px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
                   Email
                 </div>
@@ -612,9 +680,7 @@ export default function HomePage() {
               <div className="text-[11px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
                 Quick note
               </div>
-              <div className="mt-3 text-[15px] font-semibold leading-tight">
-                Send a message in 30 seconds.
-              </div>
+              <div className="mt-3 text-[15px] font-semibold leading-tight">Send a message in 30 seconds.</div>
 
               <div className="mt-6 space-y-3">
                 <Input theme={theme} placeholder="Name" />
@@ -640,7 +706,7 @@ export default function HomePage() {
                   REZIIIX
                 </span>
                 <span className="text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.a }}>
-                  Studio build
+                  studio build
                 </span>
               </div>
             </div>
@@ -653,60 +719,7 @@ export default function HomePage() {
   );
 }
 
-/** --------- SPEC STRIP (crazy add) --------- */
-function SpecStrip({ theme }: { theme: Theme }) {
-  const reduceMotion = useReducedMotion();
-  const items = [
-    { k: "Delivery", v: "Pilot → production" },
-    { k: "Integration", v: "Your existing tools" },
-    { k: "Governance", v: "Enterprise-minded" },
-    { k: "Enablement", v: "Workshops available" },
-  ];
-
-  return (
-    <div className="mx-auto max-w-6xl px-4 -mt-7 md:-mt-10 pb-2">
-      <motion.div
-        initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{
-          duration: reduceMotion ? 0.1 : 0.7,
-          ease: [0.2, 1, 0.2, 1],
-          delay: 0.05,
-        }}
-        className="relative overflow-hidden rounded-[32px] p-5 md:p-6"
-        style={{ border: `1px solid ${theme.border}`, background: theme.card }}
-      >
-        <div
-          className="absolute -inset-24 opacity-60 blur-3xl"
-          style={{
-            background: `radial-gradient(circle at 15% 30%, ${theme.a}22, transparent 60%),
-                         radial-gradient(circle at 85% 35%, ${theme.b}22, transparent 60%),
-                         radial-gradient(circle at 55% 90%, ${theme.c}16, transparent 62%)`,
-          }}
-        />
-
-        <div className="relative grid gap-3 md:grid-cols-4">
-          {items.map((x) => (
-            <div
-              key={x.k}
-              className="rounded-2xl px-4 py-3"
-              style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
-            >
-              <div className="text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
-                {x.k}
-              </div>
-              <div className="mt-1 text-[13px] font-semibold" style={{ color: theme.ink }}>
-                {x.v}
-              </div>
-            </div>
-          ))}
-        </div>
-      </motion.div>
-    </div>
-  );
-}
-
-/** --------- COMPONENTS --------- */
+/** ---------------- NAV + UI ---------------- */
 
 function NavBtn({
   theme,
@@ -728,10 +741,7 @@ function NavBtn({
       <span className="relative">
         {children}
         {active && (
-          <span
-            className="absolute -bottom-2 left-0 h-[2px] w-full rounded-full"
-            style={{ background: theme.a }}
-          />
+          <span className="absolute -bottom-2 left-0 h-[2px] w-full rounded-full" style={{ background: theme.a }} />
         )}
       </span>
     </button>
@@ -742,43 +752,59 @@ function Pill({ theme, children }: { theme: Theme; children: React.ReactNode }) 
   return (
     <span
       className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.22em]"
-      style={{
-        border: `1px solid ${theme.border}`,
-        background: "rgba(255,255,255,0.55)",
-        color: theme.muted,
-      }}
+      style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)", color: theme.muted }}
     >
       {children}
     </span>
   );
 }
 
-function MiniStat({ theme, k, v }: { theme: Theme; k: string; v: string }) {
+function HeroProof({
+  theme,
+  title,
+  desc,
+  dot,
+}: {
+  theme: Theme;
+  title: string;
+  desc: string;
+  dot: string;
+}) {
   return (
     <div
-      className="rounded-2xl p-4"
+      className="rounded-[22px] p-4"
       style={{
         border: `1px solid ${theme.border}`,
         background: "rgba(255,255,255,0.55)",
       }}
     >
-      <div className="text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
+      <div className="flex items-center gap-2">
+        <span className="h-2 w-2 rounded-full" style={{ background: dot }} />
+        <div className="text-[11px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
+          {title}
+        </div>
+      </div>
+      <div className="mt-2 text-[12px] leading-relaxed" style={{ color: theme.muted }}>
+        {desc}
+      </div>
+    </div>
+  );
+}
+
+function HeroLine({ theme, k, v }: { theme: Theme; k: string; v: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="text-[10px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
         {k}
       </div>
-      <div className="mt-2 text-[13px] font-semibold" style={{ color: theme.ink }}>
+      <div className="text-[12px]" style={{ color: theme.muted }}>
         {v}
       </div>
     </div>
   );
 }
 
-type Capability = {
-  title: string;
-  subtitle: string;
-  body: string;
-  bullets: string[];
-  tag: string;
-};
+/** ---------------- MODAL ---------------- */
 
 function CapabilityModal({
   theme,
@@ -839,10 +865,7 @@ function CapabilityModal({
               </button>
             </div>
 
-            <div
-              className="mt-6 rounded-3xl p-5"
-              style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
-            >
+            <div className="mt-6 rounded-3xl p-5" style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}>
               <div className="text-[13px] leading-relaxed" style={{ color: theme.muted }}>
                 {open.body}
               </div>
@@ -870,6 +893,8 @@ function CapabilityModal({
     </AnimatePresence>
   );
 }
+
+/** ---------------- OFFERS ---------------- */
 
 function OfferCard({
   theme,
@@ -924,6 +949,8 @@ function OfferCard({
   );
 }
 
+/** ---------------- FORM INPUTS ---------------- */
+
 function Input({ theme, placeholder }: { theme: Theme; placeholder: string }) {
   return (
     <input
@@ -952,17 +979,13 @@ function Textarea({ theme, placeholder }: { theme: Theme; placeholder: string })
   );
 }
 
-/** --------- Ecosystem Universe (FIXED SPACING + hover “pop”) --------- */
-function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }) {
+/** ---------------- NASA ECOSYSTEM (NO CLIPPING) ---------------- */
+
+function IntegrationUniverseNASA({ theme, items }: { theme: Theme; items: string[] }) {
   const reduceMotion = useReducedMotion();
   const ref = useRef<HTMLDivElement | null>(null);
 
   const [size, setSize] = useState({ w: 820, h: 520 });
-  const [cursor, setCursor] = useState<{ x: number; y: number; inside: boolean }>({
-    x: 0,
-    y: 0,
-    inside: false,
-  });
   const [hovered, setHovered] = useState<string | null>(null);
 
   // Responsive sizing
@@ -976,162 +999,121 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
     return () => ro.disconnect();
   }, []);
 
-  // Scroll-reactive breathing
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "end start"],
-  });
+  // Scroll breathing
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const [breath, setBreath] = useState(0);
   useEffect(() => {
-    const unsub = scrollYProgress.on("change", (v) => {
-      const bell = Math.sin(Math.PI * v);
-      setBreath(bell);
-    });
+    const unsub = scrollYProgress.on("change", (v) => setBreath(Math.sin(Math.PI * v)));
     return () => unsub();
   }, [scrollYProgress]);
 
-  // Cursor tracking inside the card (relative coords)
-  const onMove = (e: React.MouseEvent) => {
-    const el = ref.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    setCursor({ x: e.clientX - r.left, y: e.clientY - r.top, inside: true });
-  };
-  const onLeave = () => setCursor((p) => ({ ...p, inside: false }));
+  const center = useMemo(() => ({ x: size.w / 2, y: size.h / 2 }), [size.w, size.h]);
 
-  // Tiered universe (designed, not random)
-  const TIERS = useMemo(
-    () => [
-      { tier: 0, labels: ["Microsoft 365", "Copilot Studio", "Slack"] },
-      { tier: 1, labels: ["Salesforce", "HubSpot", "ServiceNow", "Zendesk"] },
-      {
-        tier: 2,
-        labels: items.filter(
-          (x) =>
-            ![
-              "Microsoft 365",
-              "Copilot Studio",
-              "Slack",
-              "Salesforce",
-              "HubSpot",
-              "ServiceNow",
-              "Zendesk",
-            ].includes(x)
-        ),
-      },
-    ],
-    [items]
-  );
+  // Node bounds: this is the key to never clipping
+  const NODE_W = 132;
+  const NODE_H = 38;
+  const SAFE_PAD = 22;
 
-  // Utils
-  const padX = 96;
-  const padY = 76;
+  const safeRX = Math.max(140, size.w / 2 - NODE_W - SAFE_PAD);
+  const safeRY = Math.max(120, size.h / 2 - NODE_H - SAFE_PAD);
 
-  const clampXY = (x: number, y: number) => ({
-    x: Math.max(padX, Math.min(size.w - padX, x)),
-    y: Math.max(padY, Math.min(size.h - padY, y)),
-  });
+  // Tiers (designed)
+  const tiers = useMemo(() => {
+    const core = ["Microsoft 365", "Copilot Studio", "Slack"];
+    const biz = ["Salesforce", "HubSpot", "ServiceNow", "Zendesk"];
+    const rest = items.filter((x) => !core.includes(x) && !biz.includes(x));
+    return [
+      { t: 0, labels: core },
+      { t: 1, labels: biz },
+      { t: 2, labels: rest },
+    ];
+  }, [items]);
 
-  const center = useMemo(() => ({ x: size.w / 2, y: size.h / 2 }), [size]);
-
-  // Starfield points (stable)
+  // Starfield
   const stars = useMemo(() => {
-    const count = 85;
-    const s = Array.from({ length: count }).map((_, i) => {
+    const count = 90;
+    return Array.from({ length: count }).map((_, i) => {
       const x = (Math.sin(i * 999) * 0.5 + 0.5) * size.w;
       const y = (Math.cos(i * 777) * 0.5 + 0.5) * size.h;
       const r = 0.7 + ((i * 13) % 12) * 0.08;
-      const o = 0.16 + ((i * 17) % 10) * 0.03;
+      const o = 0.14 + ((i * 17) % 10) * 0.03;
       return { x, y, r, o };
     });
-    return s;
   }, [size.w, size.h]);
 
-  // Compute base nodes (elliptical orbits + breathing)
-  const baseNodes = useMemo(() => {
-    const maxR = Math.min(size.w - padX * 2, size.h - padY * 2) * 0.56;
-    const breatheK = 1 + breath * 0.07;
+  // Compute nodes
+  const nodes = useMemo(() => {
+    const now = Date.now() / 1000;
+    const breatheK = 1 + breath * 0.05;
 
-    // width-first ellipse
-    const ellipseX = 1.42;
-    const ellipseY = 0.92;
+    // Ellipse factor uses width more
+    const ex = 1.12;
+    const ey = 0.78;
 
-    const ringR = [
-      maxR * 0.34 * breatheK,
-      maxR * 0.52 * breatheK,
-      maxR * 0.72 * breatheK,
+    const rings = [
+      { r: 0.42, drift: 4.5 },
+      { r: 0.64, drift: 6.5 },
+      { r: 0.86, drift: 8.0 },
     ];
 
-    const angleOffsets = [0.38, 0.86, 1.18];
+    const all = tiers.flatMap((tier) => {
+      const ring = rings[tier.t] ?? rings[2];
+      const n = Math.max(tier.labels.length, 1);
 
-    const all = TIERS.flatMap((tier) => {
-      const labels = tier.labels;
-      const n = Math.max(labels.length, 1);
-      return labels.map((label, i) => {
-        const a = (i / n) * Math.PI * 2 + angleOffsets[tier.tier];
-        const r = ringR[tier.tier];
+      return tier.labels.map((label, i) => {
+        const a = (i / n) * Math.PI * 2 + tier.t * 0.72 + 0.4;
 
-        const baseX = center.x + Math.cos(a) * r * ellipseX;
-        const baseY = center.y + Math.sin(a) * r * ellipseY;
+        // Safe ellipse radii (cannot exceed container bounds)
+        const rx = safeRX * ring.r * breatheK * ex;
+        const ry = safeRY * ring.r * breatheK * ey;
 
-        const clamped = clampXY(baseX, baseY);
+        // Base position guaranteed inside
+        const baseX = center.x + Math.cos(a) * rx;
+        const baseY = center.y + Math.sin(a) * ry;
+
+        // Subtle drift
+        const drift = reduceMotion ? 0 : ring.drift;
+        const dx = reduceMotion ? 0 : Math.sin(now * 0.65 + i * 0.9 + tier.t) * drift;
+        const dy = reduceMotion ? 0 : Math.cos(now * 0.55 + i * 0.8 + tier.t) * drift;
 
         return {
           label,
-          tier: tier.tier,
-          baseX: clamped.x,
-          baseY: clamped.y,
-          a,
-          // depth = outer ring feels “lighter”
-          drift: 5 + tier.tier * 4,
-          delay: (i * 0.14 + tier.tier * 0.25) % 1.1,
-          phase: (i * 0.7 + tier.tier * 1.3) % (Math.PI * 2),
+          tier: tier.t,
+          x: baseX + dx,
+          y: baseY + dy,
         };
       });
     });
 
     return all;
-  }, [TIERS, size.w, size.h, breath, center.x, center.y]);
+  }, [tiers, center.x, center.y, safeRX, safeRY, breath, reduceMotion]);
 
-  // Final target positions include gravity pull + drift, then clamp
-  const finalNodes = useMemo(() => {
-    const now = Date.now() / 1000;
+  const hoveredNode = hovered ? nodes.find((n) => n.label === hovered) : null;
 
-    return baseNodes.map((n, idx) => {
-      // Drift (sin/cos) - very subtle
-      const driftX = reduceMotion ? 0 : Math.sin(now * 0.75 + n.phase) * n.drift;
-      const driftY = reduceMotion ? 0 : Math.cos(now * 0.62 + n.phase) * n.drift;
+  const beamPath = useMemo(() => {
+    if (!hoveredNode) return null;
+    const cx = center.x;
+    const cy = center.y;
+    const tx = hoveredNode.x;
+    const ty = hoveredNode.y;
 
-      // Hover gravity (lean toward cursor)
-      let pullX = 0;
-      let pullY = 0;
-      if (cursor.inside && !reduceMotion) {
-        const dx = cursor.x - n.baseX;
-        const dy = cursor.y - n.baseY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const influence = Math.max(0, 1 - dist / 420);
+    const mx = (cx + tx) / 2;
+    const my = (cy + ty) / 2;
 
-        // inner ring heavier, outer ring more responsive
-        const depthK = n.tier === 0 ? 0.055 : n.tier === 1 ? 0.072 : 0.09;
+    const bend = (tx > cx ? 1 : -1) * 44;
+    const ctrlX = mx + bend;
+    const ctrlY = my - 22;
 
-        pullX = dx * influence * depthK;
-        pullY = dy * influence * depthK;
-      }
+    return `M ${cx} ${cy} Q ${ctrlX} ${ctrlY} ${tx} ${ty}`;
+  }, [hoveredNode, center.x, center.y]);
 
-      const t = clampXY(n.baseX + driftX + pullX, n.baseY + driftY + pullY);
-
-      return { ...n, x: t.x, y: t.y, idx };
-    });
-  }, [baseNodes, cursor.inside, cursor.x, cursor.y, reduceMotion, size.w, size.h]);
-
-  // Constellation edges (connect nearby nodes, stable & subtle)
+  // constellation edges (nearest links)
   const edges = useMemo(() => {
-    const pts = finalNodes;
-    const maxDist = Math.min(size.w, size.h) * 0.28;
-    const E: Array<{ a: { x: number; y: number }; b: { x: number; y: number }; w: number }> = [];
+    const pts = nodes;
+    const maxDist = Math.min(size.w, size.h) * 0.30;
+    const E: Array<{ a: any; b: any; w: number }> = [];
 
     for (let i = 0; i < pts.length; i++) {
-      // connect each node to its nearest 2 nodes
       const dists: Array<{ j: number; d: number }> = [];
       for (let j = 0; j < pts.length; j++) {
         if (i === j) continue;
@@ -1143,63 +1125,33 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
       dists.sort((a, b) => a.d - b.d);
       for (const k of dists.slice(0, 2)) {
         if (k.d < maxDist) {
-          const w = 1 - k.d / maxDist; // weight based on distance
-          E.push({ a: { x: pts[i].x, y: pts[i].y }, b: { x: pts[k.j].x, y: pts[k.j].y }, w });
+          const w = 1 - k.d / maxDist;
+          E.push({ a: pts[i], b: pts[k.j], w });
         }
       }
     }
-
     return E;
-  }, [finalNodes, size.w, size.h]);
-
-  // Hover beam path (center -> hovered node)
-  const hoveredNode = hovered ? finalNodes.find((n) => n.label === hovered) : null;
-
-  const beamPath = useMemo(() => {
-    if (!hoveredNode) return null;
-
-    // Slight curve for NASA vibe
-    const cx = center.x;
-    const cy = center.y;
-    const tx = hoveredNode.x;
-    const ty = hoveredNode.y;
-
-    const mx = (cx + tx) / 2;
-    const my = (cy + ty) / 2;
-
-    // bend control point sideways based on side of screen
-    const bend = (tx > cx ? 1 : -1) * 42;
-    const ctrlX = mx + bend;
-    const ctrlY = my - 18;
-
-    return `M ${cx} ${cy} Q ${ctrlX} ${ctrlY} ${tx} ${ty}`;
-  }, [hoveredNode, center.x, center.y]);
+  }, [nodes, size.w, size.h]);
 
   return (
     <div
       ref={ref}
-      onMouseMove={onMove}
-      onMouseEnter={() => setCursor((p) => ({ ...p, inside: true }))}
-      onMouseLeave={() => {
-        onLeave();
-        setHovered(null);
-      }}
       className="relative h-[440px] md:h-[520px] overflow-hidden rounded-[36px]"
       style={{ border: `1px solid ${theme.border}`, background: theme.card }}
     >
-      {/* ambient field */}
+      {/* ambient in-card */}
       <div
-        className="absolute -inset-32 opacity-60 blur-3xl"
+        className="absolute -inset-24 opacity-55 blur-3xl"
         style={{
           background: `
-            radial-gradient(circle at 18% 20%, ${theme.a}28, transparent 55%),
-            radial-gradient(circle at 86% 26%, ${theme.b}22, transparent 58%),
-            radial-gradient(circle at 56% 88%, ${theme.c}18, transparent 62%)
+            radial-gradient(circle at 18% 20%, ${theme.a}22, transparent 55%),
+            radial-gradient(circle at 86% 26%, ${theme.b}18, transparent 58%),
+            radial-gradient(circle at 56% 88%, ${theme.c}14, transparent 62%)
           `,
         }}
       />
 
-      {/* STARFIELD (NASA) */}
+      {/* starfield */}
       <div className="pointer-events-none absolute inset-0">
         {stars.map((s, i) => (
           <div
@@ -1219,33 +1171,25 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
         ))}
       </div>
 
-      {/* SVG constellation layer */}
+      {/* svg layer */}
       <svg className="pointer-events-none absolute inset-0" width={size.w} height={size.h}>
         {/* orbit rings */}
-        {[0.34, 0.52, 0.72].map((r, i) => (
+        {[0.42, 0.64, 0.86].map((r, i) => (
           <motion.ellipse
             key={i}
             cx={center.x}
             cy={center.y}
-            rx={(Math.min(size.w, size.h) * 0.56) * r * 1.42}
-            ry={(Math.min(size.w, size.h) * 0.56) * r * 0.92}
+            rx={safeRX * r * 1.12}
+            ry={safeRY * r * 0.78}
             fill="none"
             stroke="rgba(0,0,0,0.10)"
             strokeDasharray="4 7"
-            animate={
-              reduceMotion
-                ? {}
-                : { opacity: [0.85, 0.45, 0.85], strokeDashoffset: [0, 60] }
-            }
-            transition={
-              reduceMotion
-                ? { duration: 0.1 }
-                : { duration: 10 + i * 3, repeat: Infinity, ease: "linear" }
-            }
+            animate={reduceMotion ? {} : { opacity: [0.85, 0.45, 0.85], strokeDashoffset: [0, 60] }}
+            transition={reduceMotion ? { duration: 0.1 } : { duration: 10 + i * 3, repeat: Infinity, ease: "linear" }}
           />
         ))}
 
-        {/* subtle constellation links */}
+        {/* edges */}
         {edges.map((e, i) => (
           <line
             key={i}
@@ -1253,43 +1197,38 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
             y1={e.a.y}
             x2={e.b.x}
             y2={e.b.y}
-            stroke={`rgba(0,0,0,${0.05 + e.w * 0.10})`}
+            stroke={`rgba(0,0,0,${0.05 + e.w * 0.11})`}
             strokeWidth={1}
           />
         ))}
 
-        {/* hover beam (center -> hovered node) */}
+        {/* hover beam */}
         <AnimatePresence>
           {beamPath && hoveredNode && (
             <>
-              {/* glow underbeam */}
               <motion.path
                 d={beamPath}
                 fill="none"
                 stroke={`rgba(0,0,0,0.10)`}
-                strokeWidth={8}
+                strokeWidth={9}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                style={{ filter: "blur(6px)" }}
+                style={{ filter: "blur(7px)" }}
               />
-
-              {/* main beam */}
               <motion.path
                 d={beamPath}
                 fill="none"
                 stroke={`url(#beamGrad)`}
-                strokeWidth={2.2}
+                strokeWidth={2.3}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               />
-
-              {/* energy pulse traveling along the beam */}
               <motion.path
                 d={beamPath}
                 fill="none"
-                stroke={`rgba(255,255,255,0.8)`}
+                stroke={`rgba(255,255,255,0.85)`}
                 strokeWidth={1.8}
                 strokeDasharray="18 220"
                 initial={{ strokeDashoffset: 260, opacity: 0 }}
@@ -1297,8 +1236,6 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
                 exit={{ opacity: 0 }}
                 transition={{ duration: 1.05, ease: "easeInOut" }}
               />
-
-              {/* target halo */}
               <motion.circle
                 cx={hoveredNode.x}
                 cy={hoveredNode.y}
@@ -1311,44 +1248,36 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.7 }}
               />
-              <motion.circle
-                cx={hoveredNode.x}
-                cy={hoveredNode.y}
-                r={10}
-                fill="none"
-                stroke={`rgba(0,0,0,0.18)`}
-                strokeWidth={2}
-                initial={{ opacity: 0, scale: 0.7 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.7 }}
-              />
             </>
           )}
         </AnimatePresence>
 
-        {/* gradient defs */}
         <defs>
-          <linearGradient id="beamGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor={theme.a} stopOpacity="0.55" />
-            <stop offset="55%" stopColor={theme.b} stopOpacity="0.65" />
-            <stop offset="100%" stopColor={theme.c} stopOpacity="0.55" />
+          <linearGradient
+            id="beamGrad"
+            gradientUnits="userSpaceOnUse"
+            x1={center.x}
+            y1={center.y}
+            x2={hoveredNode?.x ?? center.x}
+            y2={hoveredNode?.y ?? center.y}
+          >
+            <stop offset="0%" stopColor={theme.a} stopOpacity="0.60" />
+            <stop offset="55%" stopColor={theme.b} stopOpacity="0.70" />
+            <stop offset="100%" stopColor={theme.c} stopOpacity="0.60" />
           </linearGradient>
         </defs>
       </svg>
 
-      {/* center core */}
+      {/* center */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
         <div
-          className="rounded-[28px] px-7 py-6 text-center"
-          style={{
-            background: "rgba(255,255,255,0.70)",
-            border: `1px solid ${theme.border}`,
-          }}
+          className="rounded-[26px] px-6 py-5 text-center"
+          style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.70)" }}
         >
           <div className="text-[10px] uppercase tracking-[0.32em]" style={{ color: theme.muted }}>
             REZIIIX
           </div>
-          <div className="mt-2 text-[16px] font-semibold">Integrates into</div>
+          <div className="mt-2 text-[15px] font-semibold">Integrates into</div>
           <div className="mt-1 text-[13px]" style={{ color: theme.muted }}>
             {hovered ? hovered : "your existing stack"}
           </div>
@@ -1356,30 +1285,20 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
       </div>
 
       {/* nodes */}
-      {finalNodes.map((n, i) => (
+      {nodes.map((n) => (
         <motion.div
           key={n.label}
           className="absolute z-[20]"
           initial={false}
           animate={{ x: n.x, y: n.y }}
-          transition={{
-            type: "spring",
-            stiffness: 220,
-            damping: 26,
-            mass: 0.55,
-            delay: reduceMotion ? 0 : n.delay * 0.05,
-          }}
-          whileHover={{ scale: 1.10 }}
+          transition={{ type: "spring", stiffness: 180, damping: 26, mass: 0.55 }}
           onMouseEnter={() => setHovered(n.label)}
           onMouseLeave={() => setHovered(null)}
+          whileHover={{ scale: 1.08 }}
         >
           <div
             className="whitespace-nowrap rounded-full px-3.5 py-2 text-[11px] uppercase tracking-[0.18em] shadow-[0_18px_55px_rgba(0,0,0,0.08)]"
-            style={{
-              background: "rgba(255,255,255,0.74)",
-              border: `1px solid ${theme.border}`,
-              color: theme.muted,
-            }}
+            style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.74)", color: theme.muted }}
           >
             <span
               className="mr-2 inline-block h-2 w-2 rounded-full"
@@ -1394,5 +1313,3 @@ function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }
     </div>
   );
 }
-
-
