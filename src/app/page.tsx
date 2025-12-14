@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import TopNav from "@/components/TopNav";
 
 type Tone = "neutral" | "accent" | "warning";
@@ -88,35 +88,44 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
+function scrollToId(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const headerOffset = 80;
+  const rect = el.getBoundingClientRect();
+  const y = rect.top + window.scrollY - headerOffset;
+  window.scrollTo({ top: y, behavior: "smooth" });
+}
+
 export default function HomePage() {
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const { scrollYProgress } = useScroll({
-    target: rootRef,
-    offset: ["start start", "end end"],
-  });
+  const { scrollYProgress } = useScroll({ target: rootRef, offset: ["start start", "end end"] });
 
-  // background intensity changes as you scroll
-  const gridOpacity = useTransform(scrollYProgress, [0, 0.35], [0.75, 0.22]);
-  const vignetteOpacity = useTransform(scrollYProgress, [0, 1], [0.35, 0.65]);
+  /* ---------- Cinematic: “scene lighting” across scroll ---------- */
+  const gridOpacity = useTransform(scrollYProgress, [0, 0.35], [0.78, 0.18]);
+  const vignetteOpacity = useTransform(scrollYProgress, [0, 1], [0.22, 0.68]);
 
-  // “AI Factory Configurator”
+  // Scene lights (subtle, not gradient spam)
+  const lightAOpacity = useTransform(scrollYProgress, [0, 0.22, 0.4], [0.55, 0.65, 0.18]); // hero
+  const lightBOpacity = useTransform(scrollYProgress, [0.25, 0.5, 0.72], [0.08, 0.55, 0.12]); // model
+  const lightCOpacity = useTransform(scrollYProgress, [0.6, 0.82, 1], [0.06, 0.38, 0.55]); // pilot/contact
+
+  // subtle “film grain”
+  const grainOpacity = useTransform(scrollYProgress, [0, 1], [0.05, 0.08]);
+
+  /* ---------- “AI Factory Configurator” state ---------- */
   const [complexity, setComplexity] = useState(62);
   const [risk, setRisk] = useState(46);
   const [integration, setIntegration] = useState(72);
   const [copilot, setCopilot] = useState(true);
 
   const model = useMemo(() => {
-    // persuasive/illustrative, not a promise
     const automationCoverage = clamp(
       Math.round(integration * 0.45 + (100 - risk) * 0.25 + (100 - complexity) * 0.3),
       18,
       92
     );
-    const humanInLoop = clamp(
-      Math.round(risk * 0.55 + complexity * 0.25 + (copilot ? 8 : 0)),
-      10,
-      85
-    );
+    const humanInLoop = clamp(Math.round(risk * 0.55 + complexity * 0.25 + (copilot ? 8 : 0)), 10, 85);
     const timeToPilotDays = clamp(
       Math.round((complexity * 0.35 + risk * 0.25 + (100 - integration) * 0.4) / 2.2),
       7,
@@ -137,20 +146,131 @@ export default function HomePage() {
     return { automationCoverage, humanInLoop, timeToPilotDays, recommended, keyControls };
   }, [complexity, risk, integration, copilot]);
 
-  // tiny “boot” indicator
+  /* ---------- Product: “System ready” indicator ---------- */
   const [ready, setReady] = useState(false);
   useEffect(() => {
     const t = window.setTimeout(() => setReady(true), 650);
     return () => window.clearTimeout(t);
   }, []);
 
+  /* ---------- Product: Command Palette (⌘K) ---------- */
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const quickActions = useMemo(() => {
+    const actions: Array<{
+      label: string;
+      hint?: string;
+      run: () => void;
+    }> = [
+      { label: "Go: Home", hint: "#top", run: () => scrollToId("top") },
+      { label: "Go: Model", hint: "#model", run: () => scrollToId("model") },
+      { label: "Go: Patterns", hint: "#cases", run: () => scrollToId("cases") },
+      { label: "Go: Pilot", hint: "#pilot", run: () => scrollToId("pilot") },
+      { label: "Go: Contact", hint: "#contact", run: () => scrollToId("contact") },
+
+      {
+        label: copilot ? "Toggle: Copilot Studio / M365 (ON)" : "Toggle: Copilot Studio / M365 (OFF)",
+        hint: "switch",
+        run: () => setCopilot((v) => !v),
+      },
+      {
+        label: "Preset: Conservative (high governance)",
+        hint: "safe",
+        run: () => {
+          setRisk(70);
+          setComplexity(58);
+          setIntegration(55);
+        },
+      },
+      {
+        label: "Preset: Balanced (typical enterprise pilot)",
+        hint: "default",
+        run: () => {
+          setRisk(48);
+          setComplexity(60);
+          setIntegration(72);
+        },
+      },
+      {
+        label: "Preset: Aggressive (fast iteration)",
+        hint: "speed",
+        run: () => {
+          setRisk(30);
+          setComplexity(52);
+          setIntegration(85);
+        },
+      },
+      {
+        label: "Randomize model",
+        hint: "fun",
+        run: () => {
+          setRisk(rand(25, 80));
+          setComplexity(rand(35, 85));
+          setIntegration(rand(35, 92));
+        },
+      },
+    ];
+
+    return actions;
+  }, [copilot]);
+
+  const filteredActions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return quickActions;
+    return quickActions.filter((a) => a.label.toLowerCase().includes(q) || (a.hint ?? "").toLowerCase().includes(q));
+  }, [query, quickActions]);
+
+  const closePalette = useCallback(() => {
+    setPaletteOpen(false);
+    setQuery("");
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const isCmdK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k";
+      if (isCmdK) {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+      if (e.key === "Escape") closePalette();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [closePalette]);
+
   return (
     <main ref={rootRef} className="relative min-h-screen bg-black text-neutral-100">
-      {/* background: blueprint grid + cosmic glow */}
+      {/* Cinematic layers (fixed) */}
       <motion.div aria-hidden="true" style={{ opacity: gridOpacity }} className="pointer-events-none fixed inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.10),transparent_55%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:64px_64px] opacity-60" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(129,140,248,0.12),transparent_62%)]" />
+      </motion.div>
+
+      {/* Scene lights */}
+      <motion.div
+        aria-hidden="true"
+        style={{ opacity: lightAOpacity }}
+        className="pointer-events-none fixed inset-0"
+      >
+        <div className="absolute -top-24 left-1/2 h-[720px] w-[900px] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.18),transparent_60%)] blur-3xl" />
+      </motion.div>
+
+      <motion.div
+        aria-hidden="true"
+        style={{ opacity: lightBOpacity }}
+        className="pointer-events-none fixed inset-0"
+      >
+        <div className="absolute top-[22vh] right-[-12rem] h-[700px] w-[700px] rounded-full bg-[radial-gradient(circle_at_center,rgba(129,140,248,0.16),transparent_62%)] blur-3xl" />
+      </motion.div>
+
+      <motion.div
+        aria-hidden="true"
+        style={{ opacity: lightCOpacity }}
+        className="pointer-events-none fixed inset-0"
+      >
+        <div className="absolute bottom-[-18rem] left-[-10rem] h-[760px] w-[760px] rounded-full bg-[radial-gradient(circle_at_center,rgba(244,114,182,0.14),transparent_62%)] blur-3xl" />
       </motion.div>
 
       <motion.div
@@ -159,7 +279,12 @@ export default function HomePage() {
         className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.85)_75%)]"
       />
 
-      {/* keep your existing nav component */}
+      {/* light film grain */}
+      <motion.div aria-hidden="true" style={{ opacity: grainOpacity }} className="pointer-events-none fixed inset-0">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%222%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22120%22 height=%22120%22 filter=%22url(%23n)%22 opacity=%220.35%22/%3E%3C/svg%3E')] mix-blend-overlay" />
+      </motion.div>
+
+      {/* NAV */}
       <TopNav />
 
       {/* HERO */}
@@ -197,10 +322,18 @@ export default function HomePage() {
               >
                 Start with a pilot
               </a>
+
+              <button
+                type="button"
+                onClick={() => setPaletteOpen(true)}
+                className="rounded-full border border-white/15 bg-white/5 px-5 py-2 text-sm text-neutral-200 hover:border-white/25"
+              >
+                ⌘K Command
+              </button>
+
               <span className="text-[11px] text-neutral-500">Remote • global teams • enterprise-first</span>
             </div>
 
-            {/* a quiet credibility anchor */}
             <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
               <div className="text-[10px] uppercase tracking-[0.26em] text-neutral-400">Principle</div>
               <div className="mt-2 text-sm text-neutral-200">
@@ -208,7 +341,6 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* “moment of silence” inside hero column */}
             <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-4">
               <div className="text-[10px] uppercase tracking-[0.28em] text-neutral-500">A quiet truth</div>
               <div className="mt-2 text-lg font-light leading-snug text-neutral-100 md:text-xl">
@@ -222,7 +354,8 @@ export default function HomePage() {
 
           {/* Control Room Panel */}
           <div className="relative">
-            <div className="absolute -inset-6 rounded-[28px] bg-[radial-gradient(circle_at_top,rgba(129,140,248,0.20),transparent_65%)] blur-2xl" />
+            <div className="absolute -inset-6 rounded-[28px] bg-[radial-gradient(circle_at_top,rgba(129,140,248,0.18),transparent_65%)] blur-2xl" />
+
             <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/60 backdrop-blur-xl">
               <div className="border-b border-white/10 bg-white/5 px-4 py-3">
                 <div className="flex items-center justify-between">
@@ -310,9 +443,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="mt-3 text-[11px] text-neutral-500">
-              Not a chat demo. A control model for production automation.
-            </div>
+            <div className="mt-3 text-[11px] text-neutral-500">Not a chat demo. A control model for production automation.</div>
           </div>
         </div>
       </section>
@@ -329,15 +460,9 @@ export default function HomePage() {
               </p>
 
               <div className="mt-7 space-y-3">
-                <MiniRule title="Evidence over vibes">
-                  Agents link decisions back to sources, events, and policies.
-                </MiniRule>
-                <MiniRule title="Safe by default">
-                  Start with read-only + drafting, then graduate to scoped actions.
-                </MiniRule>
-                <MiniRule title="Humans remain owners">
-                  Confidence gating and approvals keep responsibility clear.
-                </MiniRule>
+                <MiniRule title="Evidence over vibes">Agents link decisions back to sources, events, and policies.</MiniRule>
+                <MiniRule title="Safe by default">Start with read-only + drafting, then graduate to scoped actions.</MiniRule>
+                <MiniRule title="Humans remain owners">Confidence gating and approvals keep responsibility clear.</MiniRule>
               </div>
             </div>
 
@@ -346,7 +471,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* PATTERNS / CASES */}
+      {/* PATTERNS */}
       <section id="cases" className="border-b border-white/10">
         <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -379,9 +504,7 @@ export default function HomePage() {
                 </div>
 
                 <div className="mt-5 h-px bg-white/10" />
-                <div className="mt-4 text-[11px] text-neutral-500">
-                  Deployed inside your environment — or delivered as a managed pilot.
-                </div>
+                <div className="mt-4 text-[11px] text-neutral-500">Deployed inside your environment — or delivered as a managed pilot.</div>
               </div>
             ))}
           </div>
@@ -417,8 +540,7 @@ export default function HomePage() {
                 <div className="text-[10px] uppercase tracking-[0.26em] text-neutral-400">Contact</div>
                 <div className="mt-2 text-xl font-medium text-white">Bring one messy workflow.</div>
                 <div className="mt-3 text-[13px] leading-relaxed text-neutral-300">
-                  Tell us what’s slow, fragile, or repetitive. We’ll reply with a concrete agent concept,
-                  deployment approach, and what “production” means in your environment.
+                  Tell us what’s slow, fragile, or repetitive. We’ll reply with a concrete agent concept, deployment approach, and what “production” means in your environment.
                 </div>
 
                 <div className="mt-6 space-y-3">
@@ -459,11 +581,164 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ⌘K Command Palette */}
+      <CommandPalette
+        open={paletteOpen}
+        query={query}
+        setQuery={setQuery}
+        actions={filteredActions}
+        onClose={closePalette}
+        onRun={(run) => {
+          run();
+          closePalette();
+        }}
+      />
     </main>
   );
 }
 
-/* ---------- components ---------- */
+/* ---------- Command Palette ---------- */
+
+function CommandPalette({
+  open,
+  query,
+  setQuery,
+  actions,
+  onClose,
+  onRun,
+}: {
+  open: boolean;
+  query: string;
+  setQuery: (v: string) => void;
+  actions: Array<{ label: string; hint?: string; run: () => void }>;
+  onClose: () => void;
+  onRun: (run: () => void) => void;
+}) {
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  useEffect(() => {
+    if (!open) return;
+    setActiveIdx(0);
+  }, [open, query]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveIdx((i) => Math.min(i + 1, Math.max(0, actions.length - 1)));
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveIdx((i) => Math.max(i - 1, 0));
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const a = actions[activeIdx];
+        if (a) onRun(a.run);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, actions, activeIdx, onRun]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-[999] flex items-start justify-center px-4 pt-24 md:pt-28"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onMouseDown={onClose}
+        >
+          {/* backdrop */}
+          <motion.div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
+
+          {/* panel */}
+          <motion.div
+            onMouseDown={(e) => e.stopPropagation()}
+            initial={{ y: 18, opacity: 0, scale: 0.98 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 18, opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-black/70 shadow-[0_30px_120px_rgba(0,0,0,0.7)] backdrop-blur-xl"
+          >
+            <div className="border-b border-white/10 bg-white/5 px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.26em] text-neutral-400">Command</div>
+                  <div className="text-xs text-neutral-200">Navigate • presets • toggles</div>
+                </div>
+                <div className="text-[11px] text-neutral-500">Esc to close</div>
+              </div>
+            </div>
+
+            <div className="p-3 md:p-4">
+              <input
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Type a command… (e.g., model, preset, copilot)"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none focus:border-white/20"
+              />
+
+              <div className="mt-3 max-h-[320px] overflow-auto pr-1">
+                {actions.length === 0 ? (
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-neutral-400">
+                    No matches.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {actions.map((a, idx) => {
+                      const active = idx === activeIdx;
+                      return (
+                        <button
+                          key={`${a.label}-${idx}`}
+                          type="button"
+                          onMouseEnter={() => setActiveIdx(idx)}
+                          onClick={() => onRun(a.run)}
+                          className={cx(
+                            "w-full rounded-xl border px-3 py-2 text-left transition",
+                            active ? "border-white/20 bg-white/10" : "border-white/10 bg-white/5 hover:border-white/15"
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-sm text-neutral-100">{a.label}</div>
+                            {a.hint && (
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">
+                                {a.hint}
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3 flex items-center justify-between text-[11px] text-neutral-500">
+                <span>↑↓ to navigate</span>
+                <span>Enter to run</span>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/* ---------- UI atoms ---------- */
 
 function StatCard({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
@@ -581,4 +856,8 @@ function DiagramNode({ title, body, strong }: { title: string; body: string; str
       <div className="mt-2 text-[13px] leading-relaxed text-neutral-300">{body}</div>
     </div>
   );
+}
+
+function rand(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }

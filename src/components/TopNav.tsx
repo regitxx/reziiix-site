@@ -98,17 +98,24 @@ export default function TopNav() {
         </nav>
 
         {/* right side */}
-        <div className="flex items-center gap-2">
-          <span className="hidden text-[11px] text-slate-400 sm:inline">
-            Remote · global teams
-          </span>
-          <MagneticButton
-            onClick={handleClick("contact")}
-            className="bg-white px-3.5 py-1.5 text-[12px] font-semibold text-slate-900 shadow-[0_12px_35px_rgba(15,23,42,0.7)] hover:bg-slate-100"
-          >
-            Book a call
-          </MagneticButton>
-        </div>
+{/* right side */}
+<div className="flex items-center gap-2">
+  <span className="hidden text-[11px] text-slate-400 sm:inline">
+    Singapore · Remote
+  </span>
+
+  <span className="hidden rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-300 md:inline">
+    ⌘K
+  </span>
+
+  <MagneticButton
+    onClick={handleClick("contact")}
+    className="bg-white px-3.5 py-1.5 text-[12px] font-semibold text-slate-900 shadow-[0_12px_35px_rgba(15,23,42,0.7)] hover:bg-slate-100"
+  >
+    Book a call
+  </MagneticButton>
+</div>
+
       </div>
     </header>
   );
