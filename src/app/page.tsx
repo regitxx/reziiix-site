@@ -958,125 +958,164 @@ function Textarea({ theme, placeholder }: { theme: Theme; placeholder: string })
 }
 
 /** --------- Ecosystem Universe (FIXED SPACING + hover “pop”) --------- */
-function IntegrationUniverse({ theme, items }: { theme: Theme; items: string[] }) {
+function IntegrationUniverse({
+  theme,
+  items,
+}: {
+  theme: Theme;
+  items: string[];
+}) {
   const reduceMotion = useReducedMotion();
-  const [hovered, setHovered] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [size, setSize] = useState({ w: 520, h: 420 });
 
-  // 3-ring layout to prevent crowding
-  const rings = useMemo(() => {
-    const ringCount = 3;
-    const perRing = Math.ceil(items.length / ringCount);
-
-    const chunks: string[][] = [];
-    for (let i = 0; i < ringCount; i++) {
-      chunks.push(items.slice(i * perRing, (i + 1) * perRing));
-    }
-
-    const radii = [130, 190, 255];
-    const offsets = [0, Math.PI / 10, Math.PI / 7];
-
-    return chunks.map((chunk, ringIdx) => {
-      const n = Math.max(chunk.length, 1);
-      return chunk.map((label, i) => {
-        const angle = (i / n) * Math.PI * 2 + offsets[ringIdx];
-        const r = radii[ringIdx];
-        const d = 6 + ((i + ringIdx) % 6);
-        const delay = ((i * 0.11) + ringIdx * 0.22) % 1.1;
-        return { label, ringIdx, x: Math.cos(angle) * r, y: Math.sin(angle) * r, d, delay };
-      });
+  useEffect(() => {
+    if (!ref.current) return;
+    const ro = new ResizeObserver(([e]) => {
+      const { width, height } = e.contentRect;
+      setSize({ w: width, h: height });
     });
-  }, [items]);
+    ro.observe(ref.current);
+    return () => ro.disconnect();
+  }, []);
 
-  const flat = rings.flat();
+  /** ---- tiered ecosystem ---- */
+  const TIERS = [
+    {
+      r: 0.28,
+      items: ["Microsoft 365", "Copilot Studio", "Slack"],
+    },
+    {
+      r: 0.42,
+      items: ["Salesforce", "HubSpot", "ServiceNow", "Zendesk"],
+    },
+    {
+      r: 0.56,
+      items: ["Google Workspace", "Notion", "Jira", "Custom APIs", "SharePoint", "Teams", "Outlook"],
+    },
+  ];
+
+  const nodes = useMemo(() => {
+    const cx = size.w / 2;
+    const cy = size.h / 2;
+    const maxR = Math.min(size.w, size.h) * 0.48;
+
+    return TIERS.flatMap((tier, tIndex) =>
+      tier.items.map((label, i) => {
+        const angle =
+          (i / tier.items.length) * Math.PI * 2 +
+          tIndex * 0.6; // stagger tiers
+        const rx = maxR * tier.r * 1.25; // ellipse width
+        const ry = maxR * tier.r * 0.9;  // ellipse height
+
+        return {
+          label,
+          x: cx + Math.cos(angle) * rx,
+          y: cy + Math.sin(angle) * ry,
+          drift: 6 + tIndex * 4,
+          delay: i * 0.15,
+          tier: tIndex,
+        };
+      })
+    );
+  }, [size]);
 
   return (
     <div
-      className="relative h-[470px] md:h-[520px] overflow-hidden rounded-[32px]"
+      ref={ref}
+      className="relative h-[440px] md:h-[520px] overflow-hidden rounded-[36px]"
       style={{ border: `1px solid ${theme.border}`, background: theme.card }}
     >
+      {/* ambient field */}
       <div
-        className="absolute -inset-24 blur-2xl opacity-60"
+        className="absolute -inset-32 opacity-60 blur-3xl"
         style={{
-          background: `radial-gradient(circle at 30% 20%, ${theme.a}28, transparent 55%),
-                       radial-gradient(circle at 70% 30%, ${theme.b}24, transparent 55%),
-                       radial-gradient(circle at 55% 85%, ${theme.c}18, transparent 62%)`,
+          background: `
+            radial-gradient(circle at 20% 20%, ${theme.a}26, transparent 55%),
+            radial-gradient(circle at 80% 30%, ${theme.b}22, transparent 55%),
+            radial-gradient(circle at 55% 85%, ${theme.c}18, transparent 60%)
+          `,
         }}
       />
 
-      {/* orbit rings */}
-      <div className="pointer-events-none absolute inset-0">
+      {/* orbits */}
+      {[0.28, 0.42, 0.56].map((r, i) => (
         <div
-          className="absolute left-1/2 top-1/2 h-[280px] w-[280px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ border: `1px dashed ${theme.border}` }}
+          key={i}
+          className="pointer-events-none absolute left-1/2 top-1/2"
+          style={{
+            width: `${r * 95}%`,
+            height: `${r * 70}%`,
+            transform: "translate(-50%, -50%)",
+            border: `1px dashed ${theme.border}`,
+            borderRadius: "50%",
+          }}
         />
-        <div
-          className="absolute left-1/2 top-1/2 h-[385px] w-[385px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ border: `1px dashed ${theme.border}` }}
-        />
-        <div
-          className="absolute left-1/2 top-1/2 h-[510px] w-[510px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ border: `1px dashed ${theme.border}` }}
-        />
-      </div>
+      ))}
 
-      {/* center */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+      {/* center core */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
         <div
-          className="grid place-items-center rounded-[26px] px-7 py-6 text-center"
-          style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.62)" }}
+          className="rounded-[28px] px-7 py-6 text-center"
+          style={{
+            background: "rgba(255,255,255,0.68)",
+            border: `1px solid ${theme.border}`,
+          }}
         >
           <div className="text-[10px] uppercase tracking-[0.32em]" style={{ color: theme.muted }}>
             REZIIIX
           </div>
-          <div className="mt-2 text-[15px] font-semibold">Integrates into</div>
+          <div className="mt-2 text-[16px] font-semibold">
+            Integrates into
+          </div>
           <div className="mt-1 text-[13px]" style={{ color: theme.muted }}>
-            {hovered ? hovered : "your existing tools"}
+            your existing stack
           </div>
         </div>
       </div>
 
       {/* nodes */}
-      {flat.map((p, i) => {
-        const isHot = hovered === p.label;
-        return (
-          <motion.div
-            key={`${p.label}-${i}`}
-            className="absolute left-1/2 top-1/2"
-            onMouseEnter={() => setHovered(p.label)}
-            onMouseLeave={() => setHovered(null)}
-            initial={false}
-            animate={
-              reduceMotion
-                ? { x: p.x, y: p.y }
-                : { x: [p.x - p.d, p.x + p.d, p.x - p.d], y: [p.y + p.d, p.y - p.d, p.y + p.d] }
-            }
-            transition={
-              reduceMotion
-                ? { duration: 0.1 }
-                : { duration: 7 + (i % 6), repeat: Infinity, ease: "easeInOut", delay: p.delay }
-            }
+      {nodes.map((n, i) => (
+        <motion.div
+          key={n.label}
+          className="absolute z-[5]"
+          initial={false}
+          animate={
+            reduceMotion
+              ? { x: n.x, y: n.y }
+              : {
+                  x: [n.x - n.drift, n.x + n.drift, n.x - n.drift],
+                  y: [n.y + n.drift, n.y - n.drift, n.y + n.drift],
+                }
+          }
+          transition={{
+            duration: 7 + n.tier * 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: n.delay,
+          }}
+          whileHover={{ scale: 1.08 }}
+        >
+          <div
+            className="whitespace-nowrap rounded-full px-3 py-2 text-[11px] uppercase tracking-[0.18em]"
+            style={{
+              background: "rgba(255,255,255,0.7)",
+              border: `1px solid ${theme.border}`,
+              color: theme.muted,
+            }}
           >
-            <motion.div
-              className="whitespace-nowrap rounded-full px-3.5 py-2 text-[11px] uppercase tracking-[0.18em] shadow-[0_18px_50px_rgba(0,0,0,0.06)]"
-              animate={isHot ? { scale: 1.07 } : { scale: 1 }}
-              transition={{ type: "spring", stiffness: 300, damping: 22 }}
+            <span
+              className="mr-2 inline-block h-2 w-2 rounded-full"
               style={{
-                border: `1px solid ${theme.border}`,
-                background: "rgba(255,255,255,0.62)",
-                color: theme.muted,
+                background:
+                  n.tier === 0 ? theme.a : n.tier === 1 ? theme.b : theme.c,
               }}
-            >
-              <span
-                className="mr-2 inline-block h-2 w-2 rounded-full"
-                style={{
-                  background: i % 3 === 0 ? theme.a : i % 3 === 1 ? theme.b : theme.c,
-                }}
-              />
-              {p.label}
-            </motion.div>
-          </motion.div>
-        );
-      })}
+            />
+            {n.label}
+          </div>
+        </motion.div>
+      ))}
     </div>
   );
 }
+
