@@ -1,17 +1,17 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 /**
- * REZIIIX — Artifact Mode Homepage
- * A living "AI factory" interface you enter and operate.
- * No sections. No marketing scroll. The site behaves like the product.
+ * REZIIIX — Sales Landing + Artifact Demo
+ * Simple to understand + still feels like an artifact.
  *
- * Paste into app/page.tsx (or app/artifact/page.tsx).
+ * Above fold: clear offer + CTA + live demo panel
+ * Below: four clean blocks (What / How / Options / Contact)
+ *
+ * Single file. No other components needed.
  */
-
-type Mode = "idle" | "observe" | "understand" | "own" | "engage";
 
 type EventKind = "intake" | "route" | "synth" | "policy" | "approve" | "execute" | "escalate";
 
@@ -48,16 +48,6 @@ const kindLabel: Record<EventKind, string> = {
   escalate: "ESCALATE",
 };
 
-const kindTone: Record<EventKind, { dot: string; chip: string }> = {
-  intake: { dot: "bg-white/70", chip: "border-white/10 bg-white/5 text-white/80" },
-  route: { dot: "bg-white/70", chip: "border-white/10 bg-white/5 text-white/80" },
-  synth: { dot: "bg-white/70", chip: "border-white/10 bg-white/5 text-white/80" },
-  policy: { dot: "bg-white/70", chip: "border-white/10 bg-white/5 text-white/80" },
-  approve: { dot: "bg-white/70", chip: "border-white/10 bg-white/5 text-white/80" },
-  execute: { dot: "bg-white/70", chip: "border-white/10 bg-white/5 text-white/80" },
-  escalate: { dot: "bg-white/70", chip: "border-white/10 bg-white/5 text-white/80" },
-};
-
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
@@ -82,125 +72,93 @@ function formatTime(ms: number) {
   return `${hh}:${mm}:${ss}`;
 }
 
+function scrollToId(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const headerOffset = 84;
+  const rect = el.getBoundingClientRect();
+  const y = rect.top + window.scrollY - headerOffset;
+  window.scrollTo({ top: y, behavior: "smooth" });
+}
+
 function useKeybinds(bindings: Record<string, () => void>, enabled = true) {
   useEffect(() => {
     if (!enabled) return;
     const onKey = (e: KeyboardEvent) => {
-      const key = [
-        e.metaKey ? "Meta" : "",
-        e.ctrlKey ? "Ctrl" : "",
-        e.altKey ? "Alt" : "",
-        e.shiftKey ? "Shift" : "",
-        e.key,
-      ]
-        .filter(Boolean)
-        .join("+");
-
-      const keyLower = key.toLowerCase();
-
-      // normalize common patterns
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        const fn = bindings["cmdk"] ?? bindings["meta+k"] ?? bindings["ctrl+k"];
+        const fn = bindings["cmdk"];
         if (fn) {
           e.preventDefault();
           fn();
           return;
         }
       }
-
-      const fn = bindings[keyLower] ?? bindings[e.key.toLowerCase()];
+      const fn = bindings[e.key.toLowerCase()];
       if (fn) {
         e.preventDefault();
         fn();
       }
     };
-
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [bindings, enabled]);
 }
 
-/* ----------------------------- */
+/* ---------------------------------- */
 
-export default function HomeArtifact() {
+export default function Home() {
   const reduceMotion = useReducedMotion();
 
-  const [mode, setMode] = useState<Mode>("idle");
-
-  // "factory controls"
+  // demo controls
   const [governance, setGovernance] = useState(true);
   const [humanLoop, setHumanLoop] = useState(true);
   const [execution, setExecution] = useState(false);
-  const [intensity, setIntensity] = useState(62); // how fast the system runs
-  const [threshold, setThreshold] = useState(0.85); // confidence gate
+  const [intensity, setIntensity] = useState(55);
+  const [threshold, setThreshold] = useState(0.85);
+
+  // guided labels (for non-technical visitors)
+  const [guided, setGuided] = useState(true);
 
   // command palette
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [query, setQuery] = useState("");
 
-  // live events
+  // live demo stream
   const [events, setEvents] = useState<FactoryEvent[]>(() => seedEvents());
 
-  // headline micro-state (makes it feel alive)
-  const [statusWord, setStatusWord] = useState<"ACTIVE" | "STEADY" | "LIVE">("ACTIVE");
-
+  // generator
   useEffect(() => {
-    const id = window.setInterval(() => {
-      setStatusWord((w) => (w === "ACTIVE" ? "STEADY" : w === "STEADY" ? "LIVE" : "ACTIVE"));
-    }, 2200);
-    return () => window.clearInterval(id);
-  }, []);
-
-  // event generator
-  useEffect(() => {
-    if (mode === "idle") return;
-
-    const base = 1150; // ms
-    const speed = clamp(intensity, 0, 100);
-    const interval = clamp(Math.round(base - speed * 8), 220, 1150);
+    const base = 1150;
+    const interval = clamp(Math.round(base - clamp(intensity, 0, 100) * 8), 260, 1150);
 
     const id = window.setInterval(() => {
       setEvents((prev) => {
-        const next = produceEvent(prev, {
-          governance,
-          humanLoop,
-          execution,
-          threshold,
-        });
-        const merged = [next, ...prev].slice(0, 28);
-        return merged;
+        const next = makeEvent(Date.now(), { governance, humanLoop, execution, threshold });
+        return [next, ...prev].slice(0, 16);
       });
     }, interval);
 
     return () => window.clearInterval(id);
-  }, [mode, governance, humanLoop, execution, intensity, threshold]);
+  }, [governance, humanLoop, execution, threshold, intensity]);
 
   // palette actions
   const actions = useMemo(() => {
-    const nav = (m: Mode) => () => setMode(m);
     const toggle = (setter: (v: any) => void) => () => setter((v: any) => !v);
-
     return [
-      { label: "Enter factory", hint: "Mode", run: () => setMode("observe") },
-      { label: "Mode: Observe", hint: "Mode", run: nav("observe") },
-      { label: "Mode: Understand", hint: "Mode", run: nav("understand") },
-      { label: "Mode: Own", hint: "Mode", run: nav("own") },
-      { label: "Mode: Engage", hint: "Mode", run: nav("engage") },
-
+      { label: "Toggle guided explanations", hint: "UX", run: toggle(setGuided) },
       { label: `Toggle governance (${governance ? "ON" : "OFF"})`, hint: "Control", run: toggle(setGovernance) },
       { label: `Toggle human-in-loop (${humanLoop ? "ON" : "OFF"})`, hint: "Control", run: toggle(setHumanLoop) },
       { label: `Toggle execution (${execution ? "ON" : "OFF"})`, hint: "Control", run: toggle(setExecution) },
-
-      { label: "Set speed: calm", hint: "Control", run: () => setIntensity(30) },
-      { label: "Set speed: normal", hint: "Control", run: () => setIntensity(62) },
-      { label: "Set speed: insane", hint: "Control", run: () => setIntensity(92) },
-
+      { label: "Speed: calm", hint: "Control", run: () => setIntensity(30) },
+      { label: "Speed: normal", hint: "Control", run: () => setIntensity(55) },
+      { label: "Speed: insane", hint: "Control", run: () => setIntensity(92) },
       { label: "Confidence gate: 0.85", hint: "Control", run: () => setThreshold(0.85) },
       { label: "Confidence gate: 0.90", hint: "Control", run: () => setThreshold(0.9) },
-      { label: "Confidence gate: 0.95", hint: "Control", run: () => setThreshold(0.95) },
-
-      { label: "Reset stream", hint: "System", run: () => setEvents(seedEvents()) },
-      { label: "Exit to splash", hint: "Mode", run: () => setMode("idle") },
+      { label: "Reset demo", hint: "System", run: () => setEvents(seedEvents()) },
+      { label: "Jump: What we do", hint: "Nav", run: () => scrollToId("what") },
+      { label: "Jump: How it works", hint: "Nav", run: () => scrollToId("how") },
+      { label: "Jump: Options", hint: "Nav", run: () => scrollToId("options") },
+      { label: "Jump: Contact", hint: "Nav", run: () => scrollToId("contact") },
     ];
   }, [governance, humanLoop, execution]);
 
@@ -213,152 +171,306 @@ export default function HomeArtifact() {
   useKeybinds(
     {
       cmdk: () => setPaletteOpen((v) => !v),
-      escape: () => setPaletteOpen(false),
-      "1": () => setMode("observe"),
-      "2": () => setMode("understand"),
-      "3": () => setMode("own"),
-      "4": () => setMode("engage"),
-      "g": () => setGovernance((v) => !v),
-      "h": () => setHumanLoop((v) => !v),
-      "e": () => setExecution((v) => !v),
-      "r": () => setEvents(seedEvents()),
+      g: () => setGovernance((v) => !v),
+      h: () => setHumanLoop((v) => !v),
+      e: () => setExecution((v) => !v),
+      r: () => setEvents(seedEvents()),
     },
     true
   );
 
-  // aesthetic: single accent (not "ugly colors" — this is intentional, award-grade restraint)
-  const ACCENT = "#FFFFFF";
-  const INK = "#070707";
-
   return (
-    <main className="relative min-h-screen overflow-hidden" style={{ background: INK, color: ACCENT }}>
-      {/* background film grain + minimal grid (quiet, editorial) */}
-      <div aria-hidden className="pointer-events-none fixed inset-0">
-        <div className="absolute inset-0 opacity-[0.09] [background-image:linear-gradient(rgba(255,255,255,0.10)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.10)_1px,transparent_1px)] [background-size:120px_120px]" />
-        <div className="absolute inset-0 opacity-[0.10] bg-[radial-gradient(circle_at_50%_30%,rgba(255,255,255,0.10),transparent_55%)]" />
-        <div className="absolute inset-0 opacity-[0.65] bg-[radial-gradient(circle_at_center,transparent_38%,rgba(0,0,0,0.92)_80%)]" />
-        <Noise />
-      </div>
+    <main className="relative min-h-screen bg-black text-white">
+      <Noise />
 
-      {/* minimal top chrome */}
-      <div className="fixed left-0 right-0 top-0 z-40">
-        <div className="mx-auto max-w-6xl px-4 py-3">
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 backdrop-blur-2xl">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-xl border border-white/12 bg-white/10" />
-              <div className="leading-none">
-                <div className="text-[11px] uppercase tracking-[0.40em] text-white">REZIIIX</div>
-                <div className="mt-1 text-[10px] uppercase tracking-[0.22em] text-white/55">
-                  Artifact mode • {statusWord}
+      {/* Top Nav (simple + selling) */}
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-black/60 backdrop-blur-2xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+          <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-xl border border-white/12 bg-white/10" />
+            <div className="leading-none">
+              <div className="text-[11px] uppercase tracking-[0.40em]">REZIIIX</div>
+              <div className="mt-1 text-[10px] uppercase tracking-[0.22em] text-white/55">AI automation studio</div>
+            </div>
+          </button>
+
+          <nav className="hidden items-center gap-2 md:flex">
+            <NavBtn onClick={() => scrollToId("what")}>What</NavBtn>
+            <NavBtn onClick={() => scrollToId("how")}>How</NavBtn>
+            <NavBtn onClick={() => scrollToId("options")}>Options</NavBtn>
+            <NavBtn onClick={() => scrollToId("contact")}>Contact</NavBtn>
+            <span className="ml-2 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-white/70">
+              ⌘K
+            </span>
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setGuided((v) => !v)}
+              className={cx(
+                "rounded-full border px-3 py-1.5 text-[11px] transition",
+                guided ? "border-white/25 bg-white text-black" : "border-white/12 bg-white/10 text-white/85 hover:bg-white/15"
+              )}
+            >
+              Guided: {guided ? "ON" : "OFF"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              className="rounded-full border border-white/12 bg-white/10 px-3 py-1.5 text-[11px] text-white/85 hover:bg-white/15 transition"
+            >
+              Command
+            </button>
+
+            <button
+              type="button"
+              onClick={() => scrollToId("contact")}
+              className="rounded-full bg-white px-4 py-1.5 text-[11px] font-semibold text-black hover:bg-neutral-200 transition"
+            >
+              Talk to us
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* HERO: sell + prove */}
+      <section className="relative">
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 md:grid-cols-[1.05fr,0.95fr] md:py-16">
+          {/* SELL */}
+          <motion.div
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduceMotion ? 0.1 : 0.6, ease: "easeOut" }}
+          >
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-white/80">
+              <span className="h-1.5 w-1.5 rounded-full bg-white/70" />
+              <span className="uppercase tracking-[0.24em]">You own an AI factory</span>
+            </div>
+
+            <h1 className="mt-6 text-[clamp(2.6rem,5.2vw,4.2rem)] font-semibold leading-[0.95] text-white">
+              We build governed AI automations
+              <span className="block font-light text-white/75">inside your existing tools.</span>
+            </h1>
+
+            <p className="mt-6 max-w-xl text-[14px] leading-relaxed text-white/70">
+              REZIIIX turns repetitive workflows into reliable agentic systems with guardrails, audit trails,
+              and human approvals when needed — deployed in M365, Slack, email, CRM, service desks, and more.
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => scrollToId("contact")}
+                className="rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-black hover:bg-neutral-200 transition"
+              >
+                Bring one workflow
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToId("how")}
+                className="rounded-2xl border border-white/12 bg-white/10 px-6 py-3 text-sm text-white/90 hover:bg-white/15 transition"
+              >
+                How it works
+              </button>
+              <span className="text-[11px] uppercase tracking-[0.22em] text-white/45">
+                Fast pilots • Enterprise-safe • No lock-in
+              </span>
+            </div>
+
+            {/* “Make it obvious” in one line */}
+            {guided && (
+              <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-5 text-[13px] leading-relaxed text-white/75 backdrop-blur-xl">
+                <span className="text-white font-semibold">Plain English:</span> you tell us a workflow (e.g. “triage HR requests”),
+                we build an AI system that does it automatically, and escalates to a human when uncertain.
+              </div>
+            )}
+          </motion.div>
+
+          {/* PROVE (artifact demo panel) */}
+          <motion.div
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduceMotion ? 0.1 : 0.6, ease: "easeOut", delay: 0.05 }}
+            className="relative"
+          >
+            <div className="absolute -inset-4 rounded-[32px] bg-white/10 blur-2xl opacity-30" />
+            <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white/5 p-5 backdrop-blur-2xl">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.34em] text-white/60">Live demo</div>
+                  <div className="mt-1 text-[13px] text-white/80">A workflow running with guardrails</div>
                 </div>
+                <div className="flex items-center gap-2">
+                  <TinyToggle label="Gov" on={governance} onClick={() => setGovernance((v) => !v)} />
+                  <TinyToggle label="Human" on={humanLoop} onClick={() => setHumanLoop((v) => !v)} />
+                  <TinyToggle label="Exec" on={execution} onClick={() => setExecution((v) => !v)} />
+                </div>
+              </div>
+
+              {guided && (
+                <div className="mt-3 rounded-2xl border border-white/10 bg-black/30 p-3 text-[12px] text-white/75">
+                  <span className="text-white/90 font-semibold">What you’re seeing:</span> each line is one request moving through
+                  intake → decision → (approval) → action. Toggle “Gov/Human/Exec” to feel the difference.
+                </div>
+              )}
+
+              <div className="mt-4 space-y-2">
+                <AnimatePresence initial={false}>
+                  {events.slice(0, 10).map((e) => (
+                    <motion.div
+                      key={e.id}
+                      layout
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: reduceMotion ? 0.05 : 0.2, ease: "easeOut" }}
+                      className="rounded-2xl border border-white/10 bg-black/30 p-3"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className={cx("h-1.5 w-1.5 rounded-full", e.kind === "escalate" ? "bg-white" : "bg-white/70")} />
+                          <span className="text-[10px] uppercase tracking-[0.28em] text-white/55">{formatTime(e.t)}</span>
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.20em] text-white/80">
+                            {kindLabel[e.kind]}
+                          </span>
+                          <span className="text-[10px] uppercase tracking-[0.22em] text-white/45">{e.owner}</span>
+                        </div>
+                        <span className="text-[10px] uppercase tracking-[0.22em] text-white/55">
+                          {Math.round(e.confidence * 100)}%
+                        </span>
+                      </div>
+
+                      <div className="mt-2 text-[12px] leading-relaxed text-white/80">{e.text}</div>
+
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {e.refs.slice(0, 2).map((r) => (
+                          <span
+                            key={r}
+                            className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/60"
+                          >
+                            {r}
+                          </span>
+                        ))}
+                      </div>
+
+                      {guided && e.kind === "escalate" && (
+                        <div className="mt-2 text-[11px] text-white/55">
+                          Translation: “I’m not sure enough. A human should approve this.”
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+
+              {/* simple sliders */}
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <Slider label="Speed" value={intensity} min={0} max={100} step={1} onChange={setIntensity} />
+                <Slider label="Confidence gate" value={Math.round(threshold * 100)} min={70} max={98} step={1} onChange={(v) => setThreshold(v / 100)} />
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* WHAT */}
+      <section id="what" className="border-t border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <SectionTitle kicker="What we do" title="We automate the unglamorous work that never stops." />
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <Card title="Agentic workflows" body="Draft, route, summarize, update systems — safely, with logs." />
+            <Card title="Integrations" body="M365, Copilot Studio, Slack, email, CRM, service desk, internal APIs." />
+            <Card title="Governance by design" body="Confidence gates, policies, audit trails, and human approvals." />
+          </div>
+        </div>
+      </section>
+
+      {/* HOW */}
+      <section id="how" className="border-t border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <SectionTitle kicker="How it works" title="One workflow first. Make it real. Then scale patterns." />
+          <div className="mt-8 grid gap-4 md:grid-cols-4">
+            <Step k="01" t="Pick one workflow" d="Something repetitive and measurable." />
+            <Step k="02" t="Add guardrails" d="Policies, gates, approvals, logging." />
+            <Step k="03" t="Pilot in production" d="Controlled rollout with metrics." />
+            <Step k="04" t="Scale by pattern" d="Adjacent workflows reuse the fabric." />
+          </div>
+
+          {guided && (
+            <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-6 text-[13px] leading-relaxed text-white/75 backdrop-blur-xl">
+              <span className="text-white font-semibold">If you’re non-technical:</span> this is like hiring a digital operator.
+              We define its job, what it’s allowed to do, and when it must ask a human — then deploy it inside your tools.
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* OPTIONS */}
+      <section id="options" className="border-t border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <SectionTitle kicker="Options" title="Pick the path that matches your org." />
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <Card
+              title="Pilot Agent"
+              body="A fast, governed pilot for one workflow. You get a real system, not a demo."
+              badge="Most common"
+            />
+            <Card
+              title="AI Factory Buildout"
+              body="Multiple workflows + integrations + monitoring. Treat agents like real software."
+              badge="Scale"
+            />
+            <Card
+              title="Copilot Studio / M365 Workshop"
+              body="If you want internal capability, we teach your team to build safely (governance included)."
+              badge="Enablement"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* CONTACT */}
+      <section id="contact" className="border-t border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <SectionTitle kicker="Contact" title="Bring one workflow." />
+          <div className="mt-8 grid gap-6 md:grid-cols-[1.1fr,0.9fr]">
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+              <div className="text-[12px] leading-relaxed text-white/75">
+                Email: <span className="font-semibold text-white">hello@reziiix.com</span>
+              </div>
+              <div className="mt-4 text-[13px] leading-relaxed text-white/70">
+                Send a short description:
+                <ul className="mt-2 list-disc pl-5 text-white/70">
+                  <li>What the workflow is</li>
+                  <li>Where it lives (M365, Slack, email, tools)</li>
+                  <li>What “good” looks like (speed, accuracy, compliance)</li>
+                </ul>
               </div>
             </div>
 
-            <div className="hidden items-center gap-2 md:flex">
-              <Keycap>1</Keycap>
-              <span className="text-[10px] uppercase tracking-[0.22em] text-white/55">Observe</span>
-              <div className="h-4 w-px bg-white/10 mx-2" />
-              <Keycap>2</Keycap>
-              <span className="text-[10px] uppercase tracking-[0.22em] text-white/55">Understand</span>
-              <div className="h-4 w-px bg-white/10 mx-2" />
-              <Keycap>3</Keycap>
-              <span className="text-[10px] uppercase tracking-[0.22em] text-white/55">Own</span>
-              <div className="h-4 w-px bg-white/10 mx-2" />
-              <Keycap>4</Keycap>
-              <span className="text-[10px] uppercase tracking-[0.22em] text-white/55">Engage</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="hidden md:inline rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-white/70">
-                ⌘K
-              </span>
-              <button
-                type="button"
-                onClick={() => setPaletteOpen(true)}
-                className="rounded-full border border-white/12 bg-white/10 px-3 py-1.5 text-[11px] text-white/85 hover:bg-white/15 transition"
-              >
-                Command
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode(mode === "idle" ? "observe" : "idle")}
-                className="rounded-full bg-white px-3.5 py-1.5 text-[11px] font-semibold text-black hover:bg-neutral-200 transition"
-              >
-                {mode === "idle" ? "Enter" : "Exit"}
-              </button>
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+              <div className="space-y-3">
+                <input className="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:border-white/25" placeholder="Name" />
+                <input className="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:border-white/25" placeholder="Work email" />
+                <textarea className="h-28 w-full resize-none rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:border-white/25" placeholder="Describe the workflow…" />
+                <button className="w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-black hover:bg-neutral-200 transition" type="button">
+                  Send (static)
+                </button>
+              </div>
+              <div className="mt-4 text-[11px] text-white/55">
+                We can wire this to your CRM later — or replace it with an intake agent.
+              </div>
             </div>
           </div>
+
+          <footer className="mt-12 text-center text-[11px] text-white/45">
+            © {new Date().getFullYear()} REZIIIX
+          </footer>
         </div>
-      </div>
+      </section>
 
-      {/* main surface */}
-      <div className="relative z-10 pt-20">
-        <AnimatePresence mode="wait">
-          {mode === "idle" && (
-            <Splash
-              key="idle"
-              reduceMotion={!!reduceMotion}
-              onEnter={() => setMode("observe")}
-            />
-          )}
-
-          {mode === "observe" && (
-            <Observe
-              key="observe"
-              reduceMotion={!!reduceMotion}
-              events={events}
-              onNext={() => setMode("understand")}
-            />
-          )}
-
-          {mode === "understand" && (
-            <Understand
-              key="understand"
-              reduceMotion={!!reduceMotion}
-              events={events}
-              governance={governance}
-              humanLoop={humanLoop}
-              execution={execution}
-              intensity={intensity}
-              threshold={threshold}
-              setGovernance={setGovernance}
-              setHumanLoop={setHumanLoop}
-              setExecution={setExecution}
-              setIntensity={setIntensity}
-              setThreshold={setThreshold}
-              onNext={() => setMode("own")}
-              onPrev={() => setMode("observe")}
-            />
-          )}
-
-          {mode === "own" && (
-            <Own
-              key="own"
-              reduceMotion={!!reduceMotion}
-              governance={governance}
-              humanLoop={humanLoop}
-              execution={execution}
-              threshold={threshold}
-              onNext={() => setMode("engage")}
-              onPrev={() => setMode("understand")}
-            />
-          )}
-
-          {mode === "engage" && (
-            <Engage
-              key="engage"
-              reduceMotion={!!reduceMotion}
-              onPrev={() => setMode("own")}
-              onReset={() => {
-                setEvents(seedEvents());
-                setMode("observe");
-              }}
-            />
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* command palette */}
       <CommandPalette
         open={paletteOpen}
         query={query}
@@ -378,635 +490,124 @@ export default function HomeArtifact() {
   );
 }
 
-/* ----------------------------- SPLASH ----------------------------- */
+/* ---------------- UI bits ---------------- */
 
-function Splash({ onEnter, reduceMotion }: { onEnter: () => void; reduceMotion: boolean }) {
+function NavBtn({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (
-    <motion.section
-      className="mx-auto flex min-h-[82vh] max-w-6xl items-center px-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: reduceMotion ? 0.1 : 0.55, ease: "easeOut" }}
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-full px-3 py-1.5 text-[12px] text-white/70 hover:text-white transition"
     >
-      <div className="w-full">
-        <div className="max-w-2xl">
-          <div className="text-[11px] uppercase tracking-[0.48em] text-white/60">REZIIIX SYSTEM</div>
-
-          <h1 className="mt-6 text-[clamp(3.2rem,6.5vw,6rem)] font-semibold leading-[0.92] text-white">
-            ENTER
-            <span className="block font-light text-white/75">THE FACTORY.</span>
-          </h1>
-
-          <p className="mt-6 max-w-xl text-[14px] leading-relaxed text-white/70">
-            This website is not a brochure. It is a running automation system.
-            You can observe behavior, change governance, and feel how a real agent factory operates.
-          </p>
-
-          <div className="mt-10 flex flex-wrap items-center gap-3">
-            <button
-              onClick={onEnter}
-              className="rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-black hover:bg-neutral-200 transition"
-              type="button"
-            >
-              Enter
-            </button>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-[12px] text-white/75">
-              <div className="flex items-center gap-3">
-                <Keycap>⌘K</Keycap>
-                <span className="text-white/70">Command palette</span>
-                <span className="text-white/35">•</span>
-                <Keycap>G</Keycap>
-                <span className="text-white/70">Governance</span>
-                <span className="text-white/35">•</span>
-                <Keycap>H</Keycap>
-                <span className="text-white/70">Human loop</span>
-                <span className="text-white/35">•</span>
-                <Keycap>E</Keycap>
-                <span className="text-white/70">Execution</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Minimal “seal” — no extra colors, just taste */}
-        <div className="mt-14 grid gap-4 md:grid-cols-3">
-          <Seal title="Not a demo" body="Everything you see behaves like an operational system." />
-          <Seal title="Not a dashboard" body="It’s a living artifact: decisions, gates, and handoffs." />
-          <Seal title="Not a pitch" body="If it’s not trustworthy, it doesn’t ship." />
-        </div>
-      </div>
-    </motion.section>
+      {children}
+    </button>
   );
 }
 
-function Seal({ title, body }: { title: string; body: string }) {
+function SectionTitle({ kicker, title }: { kicker: string; title: string }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
-      <div className="text-[10px] uppercase tracking-[0.30em] text-white/60">{title}</div>
-      <div className="mt-3 text-[13px] leading-relaxed text-white/75">{body}</div>
-      <div className="mt-5 h-px bg-white/10" />
-      <div className="mt-4 text-[10px] uppercase tracking-[0.28em] text-white/45">artifact</div>
+    <div>
+      <div className="text-[11px] uppercase tracking-[0.34em] text-white/55">{kicker}</div>
+      <h2 className="mt-4 text-[clamp(1.7rem,3.2vw,2.4rem)] font-semibold leading-tight text-white">{title}</h2>
     </div>
   );
 }
 
-/* ----------------------------- OBSERVE ----------------------------- */
-
-function Observe({
-  events,
-  onNext,
-  reduceMotion,
-}: {
-  events: FactoryEvent[];
-  onNext: () => void;
-  reduceMotion: boolean;
-}) {
+function Card({ title, body, badge }: { title: string; body: string; badge?: string }) {
   return (
-    <motion.section
-      className="mx-auto min-h-[82vh] max-w-6xl px-4 pb-10"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 10 }}
-      transition={{ duration: reduceMotion ? 0.1 : 0.5, ease: "easeOut" }}
-    >
-      <div className="mt-6 grid gap-6 md:grid-cols-[0.9fr,1.1fr]">
-        {/* left: minimal narrative */}
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-          <div className="text-[10px] uppercase tracking-[0.34em] text-white/60">Mode 01</div>
-          <h2 className="mt-4 text-2xl font-semibold text-white">
-            Observe behavior.
-          </h2>
-          <p className="mt-3 text-[13px] leading-relaxed text-white/70">
-            This is the “quiet work” layer: intake → routing → synthesis → approval → execution.
-            Nothing magical. Just a system doing repetitive work with traceability.
-          </p>
-
-          <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-4">
-            <div className="text-[10px] uppercase tracking-[0.28em] text-white/55">Hint</div>
-            <p className="mt-2 text-[12px] leading-relaxed text-white/70">
-              Press <span className="text-white">2</span> for Understand to change governance.
-              Or hit <span className="text-white">⌘K</span> and type “toggle”.
-            </p>
-          </div>
-
-          <div className="mt-6 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onNext}
-              className="rounded-2xl bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-neutral-200 transition"
-            >
-              Understand →
-            </button>
-            <div className="text-[11px] uppercase tracking-[0.30em] text-white/45">live stream</div>
-          </div>
-        </div>
-
-        {/* right: stream */}
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.34em] text-white/60">Event stream</div>
-              <div className="mt-2 text-[13px] text-white/75">Last ~30 seconds</div>
-            </div>
-            <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">click nothing • just watch</div>
-          </div>
-
-          <div className="mt-5 space-y-2">
-            <AnimatePresence initial={false}>
-              {events.slice(0, 11).map((e) => (
-                <motion.div
-                  key={e.id}
-                  layout
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: reduceMotion ? 0.05 : 0.22, ease: "easeOut" }}
-                  className="rounded-2xl border border-white/10 bg-black/30 p-3"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className={cx("h-1.5 w-1.5 rounded-full", e.status === "warn" ? "bg-white" : "bg-white/70")} />
-                      <span className="text-[10px] uppercase tracking-[0.28em] text-white/55">
-                        {formatTime(e.t)}
-                      </span>
-                      <span className={cx("rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.20em]",
-                        kindTone[e.kind].chip
-                      )}>
-                        {kindLabel[e.kind]}
-                      </span>
-                      <span className="text-[10px] uppercase tracking-[0.22em] text-white/45">{e.owner}</span>
-                    </div>
-
-                    <span className="text-[10px] uppercase tracking-[0.22em] text-white/55">
-                      {Math.round(e.confidence * 100)}%
-                    </span>
-                  </div>
-
-                  <div className="mt-2 text-[12px] leading-relaxed text-white/80">
-                    {e.text}
-                  </div>
-
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {e.refs.slice(0, 3).map((r) => (
-                      <span
-                        key={r}
-                        className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/60"
-                      >
-                        {r}
-                      </span>
-                    ))}
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-
-          <div className="mt-4 text-[11px] text-white/45">
-            The stream is intentionally minimal: only what a real operator needs.
-          </div>
-        </div>
+    <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[13px] font-semibold text-white">{title}</div>
+        {badge && (
+          <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] uppercase tracking-[0.20em] text-white/70">
+            {badge}
+          </span>
+        )}
       </div>
-    </motion.section>
+      <div className="mt-3 text-[13px] leading-relaxed text-white/70">{body}</div>
+    </div>
   );
 }
 
-/* ----------------------------- UNDERSTAND ----------------------------- */
-
-function Understand({
-  events,
-  governance,
-  humanLoop,
-  execution,
-  intensity,
-  threshold,
-  setGovernance,
-  setHumanLoop,
-  setExecution,
-  setIntensity,
-  setThreshold,
-  onNext,
-  onPrev,
-  reduceMotion,
-}: {
-  events: FactoryEvent[];
-  governance: boolean;
-  humanLoop: boolean;
-  execution: boolean;
-  intensity: number;
-  threshold: number;
-  setGovernance: (v: boolean | ((x: boolean) => boolean)) => void;
-  setHumanLoop: (v: boolean | ((x: boolean) => boolean)) => void;
-  setExecution: (v: boolean | ((x: boolean) => boolean)) => void;
-  setIntensity: (v: number) => void;
-  setThreshold: (v: number) => void;
-  onNext: () => void;
-  onPrev: () => void;
-  reduceMotion: boolean;
-}) {
-  const metrics = useMemo(() => computeMetrics(events), [events]);
-
+function Step({ k, t, d }: { k: string; t: string; d: string }) {
   return (
-    <motion.section
-      className="mx-auto min-h-[82vh] max-w-6xl px-4 pb-10"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 10 }}
-      transition={{ duration: reduceMotion ? 0.1 : 0.5, ease: "easeOut" }}
-    >
-      <div className="mt-6 grid gap-6 md:grid-cols-[1.05fr,0.95fr]">
-        {/* left: controls */}
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-          <div className="text-[10px] uppercase tracking-[0.34em] text-white/60">Mode 02</div>
-          <h2 className="mt-4 text-2xl font-semibold text-white">
-            Understand control.
-          </h2>
-          <p className="mt-3 text-[13px] leading-relaxed text-white/70">
-            Toggle the pillars. Watch behavior shift.
-            This is the difference between “AI toy” and “production system.”
-          </p>
-
-          <div className="mt-6 grid gap-3">
-            <ToggleRow
-              label="Governance"
-              hint="G"
-              value={governance}
-              onToggle={() => setGovernance((v: boolean) => !v)}
-              desc="Policies + audit trails + explicit boundaries."
-            />
-            <ToggleRow
-              label="Human-in-loop"
-              hint="H"
-              value={humanLoop}
-              onToggle={() => setHumanLoop((v: boolean) => !v)}
-              desc="Escalations + approvals when confidence is low."
-            />
-            <ToggleRow
-              label="Execution"
-              hint="E"
-              value={execution}
-              onToggle={() => setExecution((v: boolean) => !v)}
-              desc="Write actions: tickets, drafts, updates — gated."
-            />
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.28em] text-white/55">Factory speed</div>
-                <div className="mt-1 text-[12px] text-white/70">How fast the system runs.</div>
-              </div>
-              <div className="text-[11px] font-semibold text-white">{intensity}</div>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={intensity}
-              onChange={(e) => setIntensity(Number(e.target.value))}
-              className="mt-3 w-full"
-              style={{ accentColor: "#ffffff" }}
-            />
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.28em] text-white/55">Confidence gate</div>
-                <div className="mt-1 text-[12px] text-white/70">
-                  Below this → escalate (if human loop is enabled).
-                </div>
-              </div>
-              <div className="text-[11px] font-semibold text-white">{threshold.toFixed(2)}</div>
-            </div>
-            <input
-              type="range"
-              min={0.7}
-              max={0.98}
-              step={0.01}
-              value={threshold}
-              onChange={(e) => setThreshold(Number(e.target.value))}
-              className="mt-3 w-full"
-              style={{ accentColor: "#ffffff" }}
-            />
-          </div>
-
-          <div className="mt-6 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onPrev}
-              className="rounded-2xl border border-white/12 bg-white/10 px-5 py-2.5 text-sm text-white/90 hover:bg-white/15 transition"
-            >
-              ← Observe
-            </button>
-            <button
-              type="button"
-              onClick={onNext}
-              className="rounded-2xl bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-neutral-200 transition"
-            >
-              Own →
-            </button>
-            <span className="text-[10px] uppercase tracking-[0.30em] text-white/45">real control</span>
-          </div>
-        </div>
-
-        {/* right: metrics + “behavior lens” */}
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-            <div className="text-[10px] uppercase tracking-[0.34em] text-white/60">Behavior lens</div>
-            <div className="mt-3 grid gap-3 md:grid-cols-3">
-              <MetricCard label="Escalations" value={`${metrics.escalations}`} />
-              <MetricCard label="Avg confidence" value={`${Math.round(metrics.avgConfidence * 100)}%`} />
-              <MetricCard label="Executed" value={`${metrics.executed}`} />
-            </div>
-            <div className="mt-5 rounded-2xl border border-white/10 bg-black/30 p-4 text-[12px] leading-relaxed text-white/75">
-              <span className="text-white/90">Feel it:</span> if governance is off, events become “fast but unsafe”.
-              If human-loop is off, low-confidence work slips through. If execution is on, the system becomes powerful —
-              and dangerous without gates.
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.34em] text-white/60">Latest decisions</div>
-                <div className="mt-2 text-[13px] text-white/70">You’re seeing the operator’s truth.</div>
-              </div>
-              <span className="text-[10px] uppercase tracking-[0.28em] text-white/45">not marketing</span>
-            </div>
-
-            <div className="mt-4 space-y-2">
-              {events.slice(0, 6).map((e) => (
-                <div key={e.id} className="rounded-2xl border border-white/10 bg-black/30 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-white/70" />
-                      <span className="text-[10px] uppercase tracking-[0.28em] text-white/55">{kindLabel[e.kind]}</span>
-                      <span className="text-[10px] uppercase tracking-[0.20em] text-white/45">{e.owner}</span>
-                    </div>
-                    <span className="text-[10px] uppercase tracking-[0.22em] text-white/55">
-                      {Math.round(e.confidence * 100)}%
-                    </span>
-                  </div>
-                  <div className="mt-2 text-[12px] text-white/80">{e.text}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.section>
+    <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+      <div className="text-[10px] uppercase tracking-[0.34em] text-white/55">{k}</div>
+      <div className="mt-3 text-[13px] font-semibold text-white">{t}</div>
+      <div className="mt-2 text-[13px] leading-relaxed text-white/70">{d}</div>
+    </div>
   );
 }
 
-function ToggleRow({
+function TinyToggle({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cx(
+        "rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] transition",
+        on ? "border-white/25 bg-white text-black" : "border-white/12 bg-white/10 text-white/80 hover:bg-white/15"
+      )}
+      title={label}
+    >
+      {label}
+    </button>
+  );
+}
+
+function Slider({
   label,
-  hint,
   value,
-  onToggle,
-  desc,
+  min,
+  max,
+  step,
+  onChange,
 }: {
   label: string;
-  hint: string;
-  value: boolean;
-  onToggle: () => void;
-  desc: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="text-[12px] font-semibold text-white">{label}</div>
-            <Keycap>{hint}</Keycap>
-          </div>
-          <div className="mt-1 text-[12px] text-white/65">{desc}</div>
-        </div>
-
-        <button
-          type="button"
-          onClick={onToggle}
-          className={cx(
-            "relative h-9 w-16 rounded-full border transition",
-            value ? "border-white/25 bg-white/15" : "border-white/12 bg-white/5"
-          )}
-        >
-          <span
-            className={cx(
-              "absolute top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-white transition",
-              value ? "left-8" : "left-1"
-            )}
-          />
-        </button>
+    <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[10px] uppercase tracking-[0.28em] text-white/60">{label}</div>
+        <div className="text-[11px] font-semibold text-white">{value}</div>
       </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="mt-2 w-full"
+        style={{ accentColor: "#ffffff" }}
+      />
     </div>
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
+function Noise() {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-      <div className="text-[10px] uppercase tracking-[0.28em] text-white/55">{label}</div>
-      <div className="mt-2 text-xl font-semibold text-white">{value}</div>
-      <div className="mt-3 h-px bg-white/10" />
-      <div className="mt-3 text-[11px] text-white/50">observable</div>
+    <div aria-hidden className="pointer-events-none fixed inset-0">
+      <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,0.10)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.10)_1px,transparent_1px)] [background-size:120px_120px]" />
+      <div className="absolute inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_50%_30%,rgba(255,255,255,0.10),transparent_55%)]" />
+      <div
+        className="absolute inset-0 opacity-[0.05] mix-blend-overlay"
+        style={{
+          backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.35) 1px, transparent 0)",
+          backgroundSize: "4px 4px",
+        }}
+      />
+      <div className="absolute inset-0 opacity-[0.60] bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.92)_80%)]" />
     </div>
   );
 }
 
-/* ----------------------------- OWN ----------------------------- */
-
-function Own({
-  governance,
-  humanLoop,
-  execution,
-  threshold,
-  onPrev,
-  onNext,
-  reduceMotion,
-}: {
-  governance: boolean;
-  humanLoop: boolean;
-  execution: boolean;
-  threshold: number;
-  onPrev: () => void;
-  onNext: () => void;
-  reduceMotion: boolean;
-}) {
-  const spec = useMemo(() => {
-    // generated spec copy based on toggles: feels “alive”
-    const lines = [
-      `GOVERNANCE=${governance ? "ON" : "OFF"}`,
-      `HUMAN_LOOP=${humanLoop ? "ON" : "OFF"}`,
-      `EXECUTION=${execution ? "ON" : "OFF"}`,
-      `CONFIDENCE_GATE=${threshold.toFixed(2)}`,
-      "",
-      "SYSTEM PROMISE:",
-      "• Every decision emits an audit line.",
-      "• Every low-confidence event escalates (if enabled).",
-      "• Execution is scoped to approved tools only.",
-      "",
-      "OWNERSHIP:",
-      "• Your team owns the factory.",
-      "• We deliver patterns, not lock-in.",
-    ];
-
-    return lines.join("\n");
-  }, [governance, humanLoop, execution, threshold]);
-
-  return (
-    <motion.section
-      className="mx-auto min-h-[82vh] max-w-6xl px-4 pb-10"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 10 }}
-      transition={{ duration: reduceMotion ? 0.1 : 0.5, ease: "easeOut" }}
-    >
-      <div className="mt-6 grid gap-6 md:grid-cols-[1fr,1fr]">
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-          <div className="text-[10px] uppercase tracking-[0.34em] text-white/60">Mode 03</div>
-          <h2 className="mt-4 text-2xl font-semibold text-white">Own the factory.</h2>
-          <p className="mt-3 text-[13px] leading-relaxed text-white/70">
-            REZIIIX builds the fabric inside your company — integrated into your tools — with governance and operational ownership.
-            This is not “AI as a feature.” It’s AI as an internal capability.
-          </p>
-
-          <div className="mt-6 grid gap-3">
-            <Claim title="Integrated by default" body="M365, Slack, email, service desk, CRM — wherever work already lives." />
-            <Claim title="Microsoft-native if needed" body="We can build Copilot Studio / M365 agents when your org wants it." />
-            <Claim title="Workshop option" body="If you want internal capability, we run an enablement workshop." />
-          </div>
-
-          <div className="mt-6 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onPrev}
-              className="rounded-2xl border border-white/12 bg-white/10 px-5 py-2.5 text-sm text-white/90 hover:bg-white/15 transition"
-            >
-              ← Understand
-            </button>
-            <button
-              type="button"
-              onClick={onNext}
-              className="rounded-2xl bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-neutral-200 transition"
-            >
-              Engage →
-            </button>
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-          <div className="text-[10px] uppercase tracking-[0.34em] text-white/60">Your configuration</div>
-
-          <pre className="mt-4 whitespace-pre-wrap rounded-2xl border border-white/10 bg-black/35 p-4 text-[12px] leading-relaxed text-white/80">
-{spec}
-          </pre>
-
-          <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4 text-[12px] leading-relaxed text-white/75">
-            This is the *actual* output of a serious automation studio: clear config, clear gates, clear ownership.
-          </div>
-        </div>
-      </div>
-    </motion.section>
-  );
-}
-
-function Claim({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-      <div className="text-[12px] font-semibold text-white">{title}</div>
-      <div className="mt-2 text-[12px] leading-relaxed text-white/70">{body}</div>
-    </div>
-  );
-}
-
-/* ----------------------------- ENGAGE ----------------------------- */
-
-function Engage({
-  onPrev,
-  onReset,
-  reduceMotion,
-}: {
-  onPrev: () => void;
-  onReset: () => void;
-  reduceMotion: boolean;
-}) {
-  return (
-    <motion.section
-      className="mx-auto min-h-[82vh] max-w-6xl px-4 pb-10"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 10 }}
-      transition={{ duration: reduceMotion ? 0.1 : 0.5, ease: "easeOut" }}
-    >
-      <div className="mt-6 grid gap-6 md:grid-cols-[1.1fr,0.9fr]">
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-          <div className="text-[10px] uppercase tracking-[0.34em] text-white/60">Mode 04</div>
-          <h2 className="mt-4 text-2xl font-semibold text-white">Bring one workflow.</h2>
-          <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-white/70">
-            If it’s slow, repetitive, fragile, or high-volume — it’s a candidate.
-            We’ll respond with a concrete agent concept, integration plan, and what “production” means for your environment.
-          </p>
-
-          <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-4">
-            <div className="text-[10px] uppercase tracking-[0.28em] text-white/55">Email</div>
-            <div className="mt-2 text-[14px] font-semibold text-white">hello@reziiix.com</div>
-            <div className="mt-2 text-[12px] text-white/60">Or wire this form later — we can even build the intake agent.</div>
-          </div>
-
-          <div className="mt-6 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onPrev}
-              className="rounded-2xl border border-white/12 bg-white/10 px-5 py-2.5 text-sm text-white/90 hover:bg-white/15 transition"
-            >
-              ← Own
-            </button>
-            <button
-              type="button"
-              onClick={onReset}
-              className="rounded-2xl bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-neutral-200 transition"
-            >
-              Run it again
-            </button>
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-          <div className="text-[10px] uppercase tracking-[0.34em] text-white/60">Static form</div>
-
-          <div className="mt-4 space-y-3">
-            <input
-              className="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:border-white/25"
-              placeholder="Name"
-            />
-            <input
-              className="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:border-white/25"
-              placeholder="Work email"
-            />
-            <textarea
-              className="h-28 w-full resize-none rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:border-white/25"
-              placeholder="Describe the workflow…"
-            />
-            <button
-              className="w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-black hover:bg-neutral-200 transition"
-              type="button"
-            >
-              Send (static)
-            </button>
-          </div>
-
-          <div className="mt-4 text-[11px] text-white/55">
-            Optional: we can run a workshop to teach Copilot Studio / M365 agent building + governance.
-          </div>
-        </div>
-      </div>
-    </motion.section>
-  );
-}
-
-/* ----------------------------- COMMAND PALETTE ----------------------------- */
+/* ---------------- Command Palette ---------------- */
 
 function CommandPalette({
   open,
@@ -1076,7 +677,7 @@ function CommandPalette({
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.40em] text-white/60">Command</div>
-                  <div className="mt-1 text-[12px] text-white/80">Navigate • Controls • System</div>
+                  <div className="mt-1 text-[12px] text-white/80">Nav • Demo • UX</div>
                 </div>
                 <div className="text-[11px] text-white/50">Esc to close</div>
               </div>
@@ -1087,7 +688,7 @@ function CommandPalette({
                 autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Type… (toggle, mode, speed, gate)"
+                placeholder="Type… (toggle, speed, gate, contact)"
                 className="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:border-white/25"
               />
 
@@ -1129,38 +730,14 @@ function CommandPalette({
   );
 }
 
-/* ----------------------------- VISUAL HELPERS ----------------------------- */
-
-function Keycap({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center justify-center rounded-md border border-white/12 bg-black/30 px-2 py-1 text-[10px] uppercase tracking-[0.22em] text-white/75">
-      {children}
-    </span>
-  );
-}
-
-function Noise() {
-  // CSS-only grain using a repeating radial pattern; stays subtle & premium.
-  return (
-    <div
-      className="absolute inset-0 opacity-[0.06] mix-blend-overlay"
-      style={{
-        backgroundImage:
-          "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.35) 1px, transparent 0)",
-        backgroundSize: "4px 4px",
-      }}
-    />
-  );
-}
-
-/* ----------------------------- FACTORY LOGIC ----------------------------- */
+/* ---------------- Demo event logic ---------------- */
 
 function seedEvents(): FactoryEvent[] {
   const now = Date.now();
   const base: FactoryEvent[] = [];
   for (let i = 0; i < 10; i++) {
     base.push(
-      makeEvent(now - i * 1200, {
+      makeEvent(now - i * 900, {
         governance: true,
         humanLoop: true,
         execution: false,
@@ -1171,76 +748,34 @@ function seedEvents(): FactoryEvent[] {
   return base;
 }
 
-function computeMetrics(events: FactoryEvent[]) {
-  const recent = events.slice(0, 18);
-  const escalations = recent.filter((e) => e.kind === "escalate").length;
-  const executed = recent.filter((e) => e.kind === "execute").length;
-  const avgConfidence =
-    recent.reduce((acc, e) => acc + e.confidence, 0) / Math.max(1, recent.length);
-  return { escalations, executed, avgConfidence };
-}
-
-function produceEvent(
-  prev: FactoryEvent[],
-  cfg: { governance: boolean; humanLoop: boolean; execution: boolean; threshold: number }
-): FactoryEvent {
-  const now = Date.now();
-  return makeEvent(now, cfg);
-}
-
 function makeEvent(
   t: number,
   cfg: { governance: boolean; humanLoop: boolean; execution: boolean; threshold: number }
 ): FactoryEvent {
-  // behavior changes based on cfg:
-  // - governance OFF -> more "fast/unsafe" text, less references
-  // - humanLoop OFF -> fewer escalations
-  // - execution ON -> more execute events (but gated)
-  // - threshold affects escalation frequency
   const owner = pick(owners);
 
-  // choose kind based on mode of operation
   const kinds: EventKind[] = cfg.execution
     ? ["intake", "route", "synth", "policy", "approve", "execute", "execute", "escalate"]
     : ["intake", "route", "synth", "policy", "approve", "escalate"];
 
   let kind = pick(kinds);
 
-  // confidence distribution: governance tends to increase confidence (better structure)
   let confidence = Math.random() * 0.35 + (cfg.governance ? 0.6 : 0.48);
   confidence = clamp(confidence, 0.18, 0.98);
 
-  // escalate rules
   const shouldEscalate = confidence < cfg.threshold;
   if (shouldEscalate && cfg.humanLoop) kind = "escalate";
-  if (shouldEscalate && !cfg.humanLoop) {
-    // if no human loop, system might "route" or "synth" anyway (unsafe)
-    kind = cfg.execution ? pick(["route", "synth", "execute"]) : pick(["route", "synth"]);
-  }
+  if (shouldEscalate && !cfg.humanLoop) kind = cfg.execution ? pick(["route", "synth", "execute"]) : pick(["route", "synth"]);
+  if (cfg.execution && cfg.governance && kind === "execute" && confidence < cfg.threshold) kind = cfg.humanLoop ? "escalate" : "route";
 
-  // execution gating: if execution ON but confidence is low AND governance is on, escalate instead
-  if (cfg.execution && cfg.governance && kind === "execute" && confidence < cfg.threshold) {
-    kind = cfg.humanLoop ? "escalate" : "route";
-  }
-
-  const refsCount = cfg.governance ? 2 + Math.floor(Math.random() * 3) : 0 + Math.floor(Math.random() * 2);
+  const refsCount = cfg.governance ? 2 + Math.floor(Math.random() * 2) : 0 + Math.floor(Math.random() * 2);
   const refs = shuffle([...refsPool]).slice(0, refsCount);
 
-  const status: FactoryEvent["status"] =
-    kind === "escalate" ? "warn" : confidence < cfg.threshold ? "hold" : "ok";
+  const status: FactoryEvent["status"] = kind === "escalate" ? "warn" : confidence < cfg.threshold ? "hold" : "ok";
 
   const text = generateText({ kind, owner, confidence, cfg });
 
-  return {
-    id: uid(),
-    t,
-    kind,
-    confidence,
-    text,
-    refs,
-    owner,
-    status,
-  };
+  return { id: uid(), t, kind, confidence, text, refs, owner, status };
 }
 
 function generateText({
@@ -1255,37 +790,33 @@ function generateText({
   cfg: { governance: boolean; humanLoop: boolean; execution: boolean; threshold: number };
 }) {
   const c = Math.round(confidence * 100);
-
-  // governance OFF feels reckless/fast
-  const tone = cfg.governance
-    ? "structured"
-    : "fast";
+  const structured = cfg.governance;
 
   const lines: Record<EventKind, string[]> = {
     intake: [
-      `${owner} request received. Extracted fields: subject, owner, SLA.`,
-      `Inbound signal detected. Normalizing payload for routing.`,
-      `New request captured. Metadata attached (owner, urgency).`,
+      `${owner} request received. Extracted fields + SLA.`,
+      `Inbound signal captured. Normalized for routing.`,
+      `New request captured. Metadata attached.`,
     ],
     route: [
       `Classified → ${owner}. Routed to correct queue with summary.`,
       `Routed to ${owner} owner-of-policy. Context links attached.`,
-      `Assigned to ${owner} workflow lane. SLA timer started.`,
+      `Assigned to ${owner} lane. SLA timer started.`,
     ],
     synth: [
-      `Synthesized thread into 6-line brief. Added evidence links.`,
-      `Collapsed noisy inputs into decision-ready summary.`,
+      `Summarized thread into a brief. Evidence links attached.`,
+      `Condensed inputs into decision-ready summary.`,
       `Drafted response + highlighted missing fields.`,
     ],
     policy: [
-      `Checked policy boundaries. Marked safe actions + disallowed ones.`,
-      `Validated against constraints. Flagged exceptions.`,
+      `Checked policy boundaries. Marked safe vs disallowed actions.`,
+      `Validated constraints. Flagged exceptions.`,
       `Mapped request to policy section. Suggested next steps.`,
     ],
     approve: [
       `Prepared approval packet for ${owner}. Confidence ${c}%.`,
-      `Queued for human review with evidence trail.`,
-      `Generated options A/B with tradeoffs for approval.`,
+      `Queued for review with evidence trail.`,
+      `Generated options A/B with tradeoffs.`,
     ],
     execute: [
       `Executed scoped action: updated record + posted draft.`,
@@ -1295,27 +826,23 @@ function generateText({
     escalate: [
       `Escalated to human. Confidence ${c}% < gate. Attached brief + links.`,
       `Handoff triggered. Missing data / low confidence. Summary provided.`,
-      `Escalation: policy boundary reached. Human required.`,
+      `Escalation: boundary reached. Human required.`,
     ],
   };
 
-  const base = pick(lines[kind]);
-
-  if (tone === "fast") {
-    // degrade language + remove safe signals
-    const fastVariants = [
-      `Auto-handled quickly. Minimal trace. Confidence ${c}%.`,
+  if (!structured && kind !== "escalate" && Math.random() < 0.45) {
+    return pick([
+      `Auto-handled quickly. Limited evidence attached. Confidence ${c}%.`,
       `Moved fast. Routed without deep policy mapping.`,
-      `Accelerated pass. Limited evidence attached.`,
-    ];
-    if (kind !== "escalate" && Math.random() < 0.55) return pick(fastVariants);
+      `Accelerated pass. Minimal trace.`,
+    ]);
   }
 
   if (!cfg.humanLoop && kind === "execute" && confidence < cfg.threshold) {
     return `Executed despite low confidence (${c}%). Human loop disabled.`;
   }
 
-  return base;
+  return pick(lines[kind]);
 }
 
 function shuffle<T>(arr: T[]) {
