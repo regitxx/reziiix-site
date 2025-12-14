@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import {
   motion,
   useScroll,
@@ -28,21 +28,13 @@ const staggerContainer: Variants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      duration: 0.7,
-      ease: "easeOut",
-      staggerChildren: 0.08,
-    },
+    transition: { duration: 0.7, ease: "easeOut", staggerChildren: 0.08 },
   },
 };
 
 const staggerItem: Variants = {
   hidden: { opacity: 0, y: 18 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.55, ease: "easeOut" },
-  },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: "easeOut" } },
 };
 
 /* ---------- main page ---------- */
@@ -65,6 +57,116 @@ export default function HomePage() {
   const haloScale = useTransform(scrollYProgress, [0, 1], [1.05, 0.92]);
   const haloOpacity = useTransform(scrollYProgress, [0, 1], [0.95, 0.45]);
 
+  /* ---------- “alive” agent console state ---------- */
+
+  const baseEvents = useMemo(
+    () => [
+      {
+        time: "09:14:03",
+        label: "Intake",
+        text: "New HR request triaged → “Benefits / Eligibility”.",
+      },
+      {
+        time: "09:14:09",
+        label: "Synthesis",
+        text: "Summarised 12-message thread for manager approval.",
+      },
+      {
+        time: "09:14:12",
+        label: "Execution",
+        text: "Draft reply + ticket update prepared for review.",
+      },
+    ],
+    []
+  );
+
+  const [status, setStatus] = useState<"Healthy" | "Evaluating" | "Review">("Healthy");
+  const [events, setEvents] = useState(baseEvents);
+  const [metrics, setMetrics] = useState({
+    requests: 318,
+    humanReviewPct: 18,
+    slaPct: 96,
+  });
+  const [guardrailHot, setGuardrailHot] = useState(false);
+
+  // background “liveliness” (subtle; stops feeling static)
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      // small, believable ticks
+      setMetrics((m) => ({
+        ...m,
+        requests: m.requests + (Math.random() < 0.35 ? 1 : 0),
+        // keep these stable; tiny variation only
+        humanReviewPct: clampInt(m.humanReviewPct + randChoice([-1, 0, 0, 1]), 12, 26),
+        slaPct: clampInt(m.slaPct + randChoice([-1, 0, 0, 1]), 90, 99),
+      }));
+
+      // occasional status flicker
+      if (Math.random() < 0.18) {
+        setStatus((s) => (s === "Healthy" ? "Evaluating" : "Healthy"));
+        setGuardrailHot(true);
+        window.setTimeout(() => setGuardrailHot(false), 900);
+      }
+
+      // occasionally append a new event
+      if (Math.random() < 0.22) {
+        setEvents((prev) => {
+          const next = makePlausibleEvent();
+          const merged = [...prev.slice(-5), next]; // keep it short & clean
+          return merged;
+        });
+      }
+    }, 8000);
+
+    return () => window.clearInterval(id);
+  }, []);
+
+  const simulateAgentRun = () => {
+    // a deliberate, satisfying “touch the system” moment
+    setStatus("Evaluating");
+    setGuardrailHot(true);
+
+    const t0 = new Date();
+    const first = formatTime(t0);
+
+    const seq = [
+      {
+        time: first,
+        label: "Intake",
+        text: "New request received → routing policy applied.",
+      },
+      {
+        time: formatTime(new Date(t0.getTime() + 2300)),
+        label: "Synthesis",
+        text: "Generated brief + risk flags for human review.",
+      },
+      {
+        time: formatTime(new Date(t0.getTime() + 4100)),
+        label: "Execution",
+        text: "Prepared action plan + draft response in target system.",
+      },
+    ];
+
+    setEvents((prev) => [...prev.slice(-3), ...seq]);
+
+    window.setTimeout(() => {
+      setMetrics((m) => ({
+        ...m,
+        requests: m.requests + 1,
+      }));
+    }, 1100);
+
+    window.setTimeout(() => {
+      setStatus("Review");
+      setGuardrailHot(true);
+    }, 1800);
+
+    window.setTimeout(() => {
+      setStatus("Healthy");
+      setGuardrailHot(false);
+    }, 4200);
+  };
+
   return (
     <main className="relative min-h-screen bg-black text-neutral-100">
       {/* ghost 3D scene behind everything */}
@@ -81,7 +183,7 @@ export default function HomePage() {
       {/* TOP NAV */}
       <TopNav />
 
-      {/* INTRO SPLASH WITH GHOST REZIIIX */}
+      {/* INTRO SPLASH */}
       <IntroSplash />
 
       {/* HERO */}
@@ -107,12 +209,9 @@ export default function HomePage() {
           <motion.div {...fadeUp(0)} className="max-w-xl space-y-6 md:space-y-7">
             <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-neutral-200 backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(74,222,128,0.9)]" />
-              <span className="uppercase tracking-[0.22em]">
-                Focused AI automation studio
-              </span>
+              <span className="uppercase tracking-[0.22em]">Focused AI automation studio</span>
             </div>
 
-            {/* UPDATED HERO HEADLINE (minimal design change) */}
             <h1 className="text-4xl font-semibold leading-tight text-white md:text-6xl">
               You own{" "}
               <span className="bg-gradient-to-r from-sky-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
@@ -121,11 +220,10 @@ export default function HomePage() {
               inside your company.
             </h1>
 
-            {/* UPDATED HERO DESCRIPTION */}
             <p className="max-w-md text-sm leading-relaxed text-neutral-200 md:text-[15px]">
-              REZIIIX designs and ships production-grade AI agents embedded in your
-              existing tools. They automate real workflows, log every decision, and
-              hand control back to humans when needed — no black-box SaaS, no lock-in.
+              REZIIIX designs and ships production-grade AI agents embedded in your existing tools.
+              They automate real workflows, log every decision, and hand control back to humans when
+              needed — no black-box SaaS, no lock-in.
             </p>
 
             <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-300">
@@ -134,28 +232,23 @@ export default function HomePage() {
                 whileTap={{ scale: 0.96 }}
                 className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-black shadow-[0_20px_60px_rgba(248,250,252,0.14)] transition hover:bg-neutral-200"
                 onClick={() =>
-                  document
-                    .getElementById("contact")
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "start" })
                 }
               >
                 Talk to REZIIIX
               </motion.button>
+
               <button
                 onClick={() =>
-                  document
-                    .getElementById("process")
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  document.getElementById("process")?.scrollIntoView({ behavior: "smooth", block: "start" })
                 }
                 className="rounded-full border border-neutral-600 px-4 py-1.5 text-[11px] uppercase tracking-[0.18em] text-neutral-200 hover:border-neutral-400 hover:text-white"
               >
                 See how the system works
               </button>
+
               <span className="hidden w-px self-stretch bg-neutral-800 md:inline-block" />
-              {/* UPDATED LOCATION LINE */}
-              <span className="text-[11px] text-neutral-400">
-                Remote · working with global teams
-              </span>
+              <span className="text-[11px] text-neutral-400">Remote · working with global teams</span>
             </div>
           </motion.div>
 
@@ -172,13 +265,35 @@ export default function HomePage() {
                       <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-400">
                         Live agent
                       </p>
-                      <p className="text-xs text-neutral-100">
-                        REZIIIX · Production orchestration
-                      </p>
+                      <p className="text-xs text-neutral-100">REZIIIX · Production orchestration</p>
                     </div>
-                    <div className="flex items-center gap-1.5 rounded-full bg-neutral-900/80 px-2 py-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(74,222,128,0.9)]" />
-                      <span className="text-[10px] text-neutral-200">Healthy</span>
+
+                    <div className="flex items-center gap-2">
+                      {/* “touch the system” button */}
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.97 }}
+                        type="button"
+                        onClick={simulateAgentRun}
+                        className="rounded-full border border-neutral-700 bg-neutral-950/70 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-neutral-200 hover:border-neutral-500"
+                        aria-label="Simulate agent run"
+                      >
+                        Simulate run
+                      </motion.button>
+
+                      <div className="flex items-center gap-1.5 rounded-full bg-neutral-900/80 px-2 py-1">
+                        <span
+                          className={
+                            "h-1.5 w-1.5 rounded-full shadow-[0_0_10px_rgba(74,222,128,0.9)] " +
+                            (status === "Healthy"
+                              ? "bg-emerald-400"
+                              : status === "Evaluating"
+                              ? "bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.9)]"
+                              : "bg-amber-300 shadow-[0_0_12px_rgba(252,211,77,0.9)]")
+                          }
+                        />
+                        <span className="text-[10px] text-neutral-200">{status}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -190,24 +305,8 @@ export default function HomePage() {
                         <span>Last 30 sec</span>
                       </div>
 
-                      {[
-                        {
-                          time: "09:14:03",
-                          label: "Intake",
-                          text: "New HR request triaged → “Benefits / Eligibility”.",
-                        },
-                        {
-                          time: "09:14:09",
-                          label: "Synthesis",
-                          text: "Summarised 12-message thread for manager approval.",
-                        },
-                        {
-                          time: "09:14:12",
-                          label: "Execution",
-                          text: "Draft reply + ticket update prepared for review.",
-                        },
-                      ].map((item) => (
-                        <div key={item.time} className="flex gap-2">
+                      {events.slice(-6).map((item) => (
+                        <div key={`${item.time}-${item.label}-${item.text}`} className="flex gap-2">
                           <div className="mt-[3px] h-1.5 w-1.5 rounded-full bg-sky-400" />
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-2 text-[10px] text-neutral-500">
@@ -228,20 +327,37 @@ export default function HomePage() {
                         <span>Today</span>
                         <span>Session load</span>
                       </div>
+
                       <div className="space-y-1.5">
-                        <MetricRow label="Requests handled" value="318" />
-                        <MetricRow label="Avg. human review" value="18%" />
-                        <MetricRow label="SLA matched" value="96%" />
+                        <MetricRow label="Requests handled" value={String(metrics.requests)} />
+                        <MetricRow label="Avg. human review" value={`${metrics.humanReviewPct}%`} />
+                        <MetricRow label="SLA matched" value={`${metrics.slaPct}%`} />
                       </div>
 
-                      <div className="mt-2 space-y-1 rounded-xl border border-neutral-700 bg-black/80 p-2 text-[10px] text-neutral-300">
-                        <p className="uppercase tracking-[0.14em] text-neutral-500">
-                          Guardrail
-                        </p>
+                      <div
+                        className={
+                          "mt-2 space-y-1 rounded-xl border bg-black/80 p-2 text-[10px] text-neutral-300 transition " +
+                          (guardrailHot ? "border-neutral-500" : "border-neutral-700")
+                        }
+                      >
+                        <p className="uppercase tracking-[0.14em] text-neutral-500">Guardrail</p>
                         <p>
-                          If confidence &lt; 0.85 or data incomplete → assign to human,
-                          attach summary + suggested next steps.
+                          If confidence &lt; 0.85 or data incomplete → assign to human, attach summary
+                          + suggested next steps.
                         </p>
+
+                        {/* subtle pulse bar to imply “risk management” */}
+                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-900">
+                          <motion.div
+                            className="h-full bg-white/70"
+                            animate={{
+                              x: guardrailHot ? ["-20%", "120%"] : ["-35%", "115%"],
+                              opacity: guardrailHot ? [0.25, 0.8, 0.25] : [0.15, 0.45, 0.15],
+                            }}
+                            transition={{ duration: guardrailHot ? 1.1 : 3.2, repeat: Infinity, ease: "easeInOut" }}
+                            style={{ width: "35%" }}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -249,19 +365,31 @@ export default function HomePage() {
               </div>
 
               <p className="mt-3 text-[11px] text-neutral-400">
-                This is what we actually build: a running agent inside your stack,
-                with logs, metrics, and clear rules for when humans stay in the loop.
+                This is what we actually build: a running agent inside your stack, with logs, metrics,
+                and clear rules for when humans stay in the loop.
               </p>
             </motion.div>
           </ParallaxContainer>
         </div>
       </motion.section>
 
+      {/* PHASE MARKER */}
+      <PhaseDivider label="Phase I: Foundations" />
+
       {/* SERVICES */}
       <ServicesSection />
 
+      {/* “moment of silence” */}
+      <SilentSection />
+
+      {/* PHASE MARKER */}
+      <PhaseDivider label="Phase II: System Behavior" />
+
       {/* PROCESS – sticky story */}
       <SystemsStory />
+
+      {/* PHASE MARKER */}
+      <PhaseDivider label="Phase III: Patterns" />
 
       {/* Example agents */}
       <ExampleAgents />
@@ -276,14 +404,9 @@ export default function HomePage() {
         variants={staggerContainer}
       >
         <div className="mx-auto max-w-5xl px-4 py-12 md:py-14">
-          <motion.div
-            className="mb-6 flex items-center justify-between gap-4"
-            variants={staggerItem}
-          >
+          <motion.div className="mb-6 flex items-center justify-between gap-4" variants={staggerItem}>
             <h2 className="text-sm font-medium md:text-base">A simple mental model.</h2>
-            <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-400">
-              Input → Agent → Output
-            </p>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-400">Input → Agent → Output</p>
           </motion.div>
 
           <motion.div
@@ -295,11 +418,7 @@ export default function HomePage() {
               className="absolute top-1/2 h-[2px] w-20 -translate-y-1/2 bg-white"
               initial={{ x: "-10%" }}
               animate={{ x: "110%" }}
-              transition={{
-                duration: 3.4,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
+              transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
             />
             <div className="relative grid gap-3 md:grid-cols-3">
               <WorkflowNode
@@ -323,8 +442,7 @@ export default function HomePage() {
       {/* ABOUT */}
       <motion.section
         id="about"
-        className="border-b border-neutral-900 bg-black scroll-mt-24 md:scroll-mt-28
-"
+        className="border-b border-neutral-900 bg-black scroll-mt-24 md:scroll-mt-28"
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
@@ -333,26 +451,17 @@ export default function HomePage() {
         <div className="mx-auto max-w-5xl px-4 py-12 md:py-16">
           <div className="grid gap-8 md:grid-cols-[minmax(0,1.2fr),minmax(0,1fr)]">
             <motion.div variants={staggerItem}>
-              <h2 className="mb-3 text-xl font-medium md:text-2xl">
-                A small studio for serious work.
-              </h2>
+              <h2 className="mb-3 text-xl font-medium md:text-2xl">A small studio for serious work.</h2>
               <p className="text-sm leading-relaxed text-neutral-200">
-                REZIIIX operates as a focused AI automation studio. We work with teams
-                who have real workloads, data, and constraints — not just ideas. The
-                output is always a running system that your people can use and trust.
+                REZIIIX operates as a focused AI automation studio. We work with teams who have real
+                workloads, data, and constraints — not just ideas. The output is always a running system
+                that your people can use and trust.
               </p>
             </motion.div>
-            <motion.div
-              className="space-y-3 text-xs text-neutral-300"
-              variants={staggerItem}
-            >
-              {/* UPDATED ABOUT BULLETS */}
+            <motion.div className="space-y-3 text-xs text-neutral-300" variants={staggerItem}>
               <p>▸ Remote-first, working with global teams.</p>
               <p>▸ Comfortable close to your data, policies, and security.</p>
-              <p>
-                ▸ Opinionated about scoping: start with one workflow, make it real,
-                then expand.
-              </p>
+              <p>▸ Opinionated about scoping: start with one workflow, make it real, then expand.</p>
             </motion.div>
           </div>
         </div>
@@ -370,13 +479,10 @@ export default function HomePage() {
         <div className="mx-auto max-w-5xl px-4 py-12 md:py-16">
           <div className="grid gap-8 md:grid-cols-[minmax(0,1.1fr),minmax(0,1fr)]">
             <motion.div className="space-y-4" variants={staggerItem}>
-              <h2 className="text-xl font-medium md:text-2xl">
-                Bring one messy workflow.
-              </h2>
+              <h2 className="text-xl font-medium md:text-2xl">Bring one messy workflow.</h2>
               <p className="text-sm leading-relaxed text-neutral-200">
-                Describe one process that feels slow, repetitive, or fragile.
-                We&apos;ll respond with a concrete agent concept, technical approach,
-                and what &quot;production&quot; could look like for you.
+                Describe one process that feels slow, repetitive, or fragile. We&apos;ll respond with a
+                concrete agent concept, technical approach, and what &quot;production&quot; could look like for you.
               </p>
               <p className="text-xs text-neutral-300">
                 Email: <span className="text-neutral-100">hello@reziiix.com</span>
@@ -410,8 +516,7 @@ export default function HomePage() {
                 Send (static form)
               </motion.button>
               <p className="text-[10px] text-neutral-500">
-                This form is intentionally static. We can wire it to your email,
-                CRM, or directly into an intake agent once your stack is defined.
+                This form is intentionally static. We can wire it to your email, CRM, or directly into an intake agent once your stack is defined.
               </p>
             </motion.div>
           </div>
@@ -461,15 +566,10 @@ function IntroSplash() {
       style={{ opacity, scale, y: translateY }}
       className="relative flex min-h-[92vh] items-center justify-center overflow-hidden bg-black"
     >
-      {/* -------------- SKY GOD-RAYS BACKGROUND -------------- */}
       <div className="pointer-events-none absolute inset-0">
-        {/* vertical god ray */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.18),transparent_55%)] blur-3xl" />
-
-        {/* soft celestial field */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.12),rgba(180,200,255,0.06),transparent_70%)]" />
 
-        {/* faint aurora rings */}
         <motion.div
           initial={{ rotate: 0 }}
           animate={{ rotate: 360 }}
@@ -484,12 +584,7 @@ function IntroSplash() {
         />
       </div>
 
-      {/* -------------- CENTER CONTENT -------------- */}
-      <motion.div
-        animate={controls}
-        className="relative z-10 flex flex-col items-center gap-6 text-center"
-      >
-        {/* --------- REZIIIX wordmark (angel silver gradient) --------- */}
+      <motion.div animate={controls} className="relative z-10 flex flex-col items-center gap-6 text-center">
         <motion.span
           initial={{ backgroundPositionX: "0%" }}
           animate={{
@@ -516,20 +611,15 @@ function IntroSplash() {
           REZIIIX
         </motion.span>
 
-        {/* UPDATED INTRO SUBTEXT */}
         <p className="max-w-md text-[11px] uppercase tracking-[0.28em] text-neutral-300">
           Build an AI factory inside your company — real agents in real systems, with real control.
         </p>
 
-        {/* -------------- SCROLL BUTTON (ANGEL LIGHT) -------------- */}
         <motion.button
           type="button"
           onClick={handleScrollDown}
           initial={{ opacity: 0 }}
-          animate={{
-            opacity: 1,
-            y: [0, 6, 0],
-          }}
+          animate={{ opacity: 1, y: [0, 6, 0] }}
           transition={{
             y: { duration: 1.7, repeat: Infinity, ease: "easeInOut" },
             opacity: { delay: 0.6, duration: 0.8 },
@@ -542,16 +632,12 @@ function IntroSplash() {
             <div className="h-[1px] w-16 bg-white/30" />
           </div>
 
-          {/* glowing divine button */}
           <div className="relative">
-            {/* outer halo */}
             <motion.div
               animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0.7, 0.4] }}
               transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
               className="absolute -inset-4 rounded-full bg-white/10 blur-2xl"
             />
-
-            {/* actual button */}
             <div
               className="
                 relative z-10 flex h-12 w-12 items-center justify-center
@@ -589,16 +675,11 @@ function ServicesSection() {
           variants={staggerItem}
         >
           <div>
-            <p className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">
-              Services
-            </p>
-            <h2 className="mt-2 text-xl font-medium md:text-2xl">
-              From experiment to production system.
-            </h2>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">Services</p>
+            <h2 className="mt-2 text-xl font-medium md:text-2xl">From experiment to production system.</h2>
           </div>
           <p className="max-w-sm text-xs leading-relaxed text-neutral-500">
-            We don&apos;t ship toy demos. Each engagement ends with a running system,
-            observable behavior, and a clear next workflow to automate.
+            We don&apos;t ship toy demos. Each engagement ends with a running system, observable behavior, and a clear next workflow to automate.
           </p>
         </motion.div>
 
@@ -628,36 +709,36 @@ function ServicesSection() {
                     {String(i + 1).padStart(2, "0")} / Phase
                   </p>
                   <h3 className="text-sm font-medium text-white">{card.label}</h3>
-                  <p className="text-[13px] leading-relaxed text-neutral-400">
-                    {card.body}
-                  </p>
+                  <p className="text-[13px] leading-relaxed text-neutral-400">{card.body}</p>
                 </div>
               </motion.article>
             </ParallaxContainer>
           ))}
         </div>
 
-        {/* NEW (minimal) CALLOUT: Microsoft/Copilot + Workshop */}
-        <motion.div
-          variants={staggerItem}
-          className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-950/60 px-4 py-4 text-xs shadow-[0_20px_60px_rgba(0,0,0,0.45)] md:px-5 md:py-5"
-        >
-          <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">
-            Integrated delivery
-          </p>
-          <h3 className="mt-2 text-sm font-medium md:text-base">
-            Built into your stack (including Microsoft).
-          </h3>
-          <p className="mt-2 text-xs leading-relaxed text-neutral-400">
-            We deploy agents inside your environment and tools. If your organization is
-            Microsoft-native, we can also develop{" "}
-            <span className="text-neutral-200">Copilot Studio / M365 agents</span>{" "}
-            as part of the same governed system — not isolated assistants.
-          </p>
-          <p className="mt-2 text-[11px] leading-relaxed text-neutral-500">
-            Optional: Reziiix can run a hands-on workshop to help your team learn to
-            design, test, and operate Copilot Studio / M365 automations safely.
-          </p>
+        {/* PLATFORM STRIP */}
+        <motion.div variants={staggerItem} className="mt-6 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950/60">
+          <div className="px-4 py-4 md:px-5 md:py-5">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">Integrated delivery</p>
+            <h3 className="mt-2 text-sm font-medium md:text-base">
+              Built into your stack (including Microsoft).
+            </h3>
+            <p className="mt-2 text-xs leading-relaxed text-neutral-400">
+              We deploy agents inside your environment and tools. If your organization is Microsoft-native, we can also develop{" "}
+              <span className="text-neutral-200">Copilot Studio / M365 agents</span> as part of the same governed system — not isolated assistants.
+            </p>
+            <p className="mt-3 text-[11px] leading-relaxed text-neutral-500">
+              Optional: Reziiix can run a hands-on workshop to help your team learn to design, test, and operate Copilot Studio / M365 automations safely.
+            </p>
+
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-neutral-400">
+              <span className="rounded-full border border-neutral-800 bg-black/50 px-2 py-1">Custom agents</span>
+              <span className="rounded-full border border-neutral-800 bg-black/50 px-2 py-1">Copilot Studio</span>
+              <span className="rounded-full border border-neutral-800 bg-black/50 px-2 py-1">M365 agents</span>
+              <span className="rounded-full border border-neutral-800 bg-black/50 px-2 py-1">Audit trails</span>
+              <span className="rounded-full border border-neutral-800 bg-black/50 px-2 py-1">Human-in-loop</span>
+            </div>
+          </div>
         </motion.div>
       </div>
     </motion.section>
@@ -687,15 +768,10 @@ function SystemsStory() {
       <div className="mx-auto max-w-5xl px-4 py-24 md:py-40">
         <div className="sticky top-24 space-y-10 md:space-y-12">
           <div className="max-w-xl space-y-3">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">
-              Process
-            </p>
-            <h2 className="text-xl font-medium md:text-2xl">
-              We automate the unglamorous work that never stops.
-            </h2>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">Process</p>
+            <h2 className="text-xl font-medium md:text-2xl">We automate the unglamorous work that never stops.</h2>
             <p className="text-xs leading-relaxed text-neutral-500 md:text-sm">
-              As you scroll, you&apos;re moving through the three stages we usually
-              automate first in a real team: intake, synthesis, and execution.
+              As you scroll, you&apos;re moving through the three stages we usually automate first in a real team: intake, synthesis, and execution.
             </p>
           </div>
 
@@ -704,16 +780,10 @@ function SystemsStory() {
               style={{ opacity: triageOpacity, y: triageY }}
               className="rounded-2xl border border-neutral-800 bg-neutral-950/80 px-4 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.5)] md:px-5 md:py-5"
             >
-              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">
-                01 / Triage
-              </p>
-              <h3 className="mt-2 text-sm font-medium md:text-base">
-                Signal intake & routing
-              </h3>
+              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">01 / Triage</p>
+              <h3 className="mt-2 text-sm font-medium md:text-base">Signal intake & routing</h3>
               <p className="mt-2 text-xs leading-relaxed text-neutral-400">
-                Classify, enrich, and route inbound requests from email, forms, and
-                tickets into the right queues — with confidence scores, SLAs, and
-                human review paths baked in.
+                Classify, enrich, and route inbound requests from email, forms, and tickets into the right queues — with confidence scores, SLAs, and human review paths baked in.
               </p>
             </motion.article>
 
@@ -721,16 +791,10 @@ function SystemsStory() {
               style={{ opacity: synthOpacity, y: synthY }}
               className="rounded-2xl border border-neutral-800 bg-neutral-950/80 px-4 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.5)] md:px-5 md:py-5"
             >
-              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">
-                02 / Synthesis
-              </p>
-              <h3 className="mt-2 text-sm font-medium md:text-base">
-                Summaries & briefings
-              </h3>
+              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">02 / Synthesis</p>
+              <h3 className="mt-2 text-sm font-medium md:text-base">Summaries & briefings</h3>
               <p className="mt-2 text-xs leading-relaxed text-neutral-400">
-                Turn sprawling threads, dashboards, and documents into concise,
-                decision-ready briefs your team can edit, not rewrite — with context
-                links back to the originals.
+                Turn sprawling threads, dashboards, and documents into concise, decision-ready briefs your team can edit, not rewrite — with context links back to the originals.
               </p>
             </motion.article>
 
@@ -738,16 +802,10 @@ function SystemsStory() {
               style={{ opacity: execOpacity, y: execY }}
               className="rounded-2xl border border-neutral-800 bg-neutral-950/80 px-4 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.5)] md:px-5 md:py-5"
             >
-              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">
-                03 / Execution
-              </p>
-              <h3 className="mt-2 text-sm font-medium md:text-base">
-                Agentic workflows
-              </h3>
+              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">03 / Execution</p>
+              <h3 className="mt-2 text-sm font-medium md:text-base">Agentic workflows</h3>
               <p className="mt-2 text-xs leading-relaxed text-neutral-400">
-                Trigger actions in your stack — update records, open tickets, draft
-                replies, generate reports — all within defined guardrails,
-                observability, and audit trails.
+                Trigger actions in your stack — update records, open tickets, draft replies, generate reports — all within defined guardrails, observability, and audit trails.
               </p>
             </motion.article>
           </div>
@@ -799,12 +857,7 @@ function ExampleAgents() {
   const startMarquee = () => {
     controls.start({
       x: "-50%",
-      transition: {
-        duration: 40,
-        ease: "linear",
-        repeat: Infinity,
-        repeatType: "loop",
-      },
+      transition: { duration: 40, ease: "linear", repeat: Infinity, repeatType: "loop" },
     });
   };
 
@@ -818,12 +871,8 @@ function ExampleAgents() {
       <div className="w-full px-4 py-16 md:px-8 md:py-20">
         <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">
-              Example agents
-            </p>
-            <h2 className="mt-2 text-xl font-medium md:text-2xl">
-              A few patterns we can adapt to your stack.
-            </h2>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">Example agents</p>
+            <h2 className="mt-2 text-xl font-medium md:text-2xl">A few patterns we can adapt to your stack.</h2>
           </div>
         </div>
 
@@ -832,11 +881,7 @@ function ExampleAgents() {
           onMouseEnter={() => controls.stop()}
           onMouseLeave={startMarquee}
         >
-          <motion.div
-            className="flex w-[200%] gap-6 px-2 md:px-4"
-            initial={{ x: 0 }}
-            animate={controls}
-          >
+          <motion.div className="flex w-[200%] gap-6 px-2 md:px-4" initial={{ x: 0 }} animate={controls}>
             {loopAgents.map((agent, index) => {
               const key = `${agent.name}-${index}`;
               const isActive = active === key;
@@ -852,18 +897,12 @@ function ExampleAgents() {
                   transition={{ type: "spring", stiffness: 260, damping: 22 }}
                 >
                   <div className="pointer-events-none absolute -inset-px rounded-2xl bg-[radial-gradient(circle_at_top,_rgba(129,140,248,0.35),transparent_55%)] opacity-80" />
-                  {isActive && (
-                    <div className="pointer-events-none absolute -inset-[1.5px] rounded-2xl ring-2 ring-violet-400/70" />
-                  )}
+                  {isActive && <div className="pointer-events-none absolute -inset-[1.5px] rounded-2xl ring-2 ring-violet-400/70" />}
 
                   <div className="relative space-y-2">
-                    <p className="text-[10px] uppercase tracking-[0.22em] text-violet-300/80">
-                      {agent.tag}
-                    </p>
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-violet-300/80">{agent.tag}</p>
                     <h3 className="text-sm font-medium md:text-base">{agent.name}</h3>
-                    <p className="text-xs leading-relaxed text-neutral-300">
-                      {agent.description}
-                    </p>
+                    <p className="text-xs leading-relaxed text-neutral-300">{agent.description}</p>
                     <p className="pt-1 text-[11px] text-neutral-400">{agent.impact}</p>
                   </div>
                 </motion.article>
@@ -873,9 +912,47 @@ function ExampleAgents() {
         </div>
 
         <p className="mt-4 text-[11px] text-neutral-600">
-          Continuous gallery. Hover to pause, click a card to highlight a project you want to talk
-          about.
+          Continuous gallery. Hover to pause, click a card to highlight a project you want to talk about.
         </p>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- small “silence” section ---------- */
+
+function SilentSection() {
+  return (
+    <section className="border-b border-neutral-900 bg-black">
+      <div className="mx-auto max-w-5xl px-4 py-14 md:py-20">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-[10px] uppercase tracking-[0.30em] text-neutral-600">A quiet truth</p>
+          <p className="mt-4 text-xl font-light leading-snug text-neutral-100 md:text-3xl">
+            Automation isn’t about speed. <br className="hidden md:block" />
+            It’s about removing uncertainty.
+          </p>
+          <p className="mt-4 text-xs leading-relaxed text-neutral-500 md:text-sm">
+            That’s why our agents ship with governance, audit trails, and clean human handoffs — so teams can trust the system under real constraints.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- phase divider ---------- */
+
+function PhaseDivider({ label }: { label: string }) {
+  return (
+    <section className="border-b border-neutral-900 bg-black">
+      <div className="mx-auto max-w-5xl px-4 py-6">
+        <div className="flex items-center gap-4">
+          <div className="h-px flex-1 bg-neutral-900" />
+          <div className="rounded-full border border-neutral-800 bg-neutral-950/70 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-neutral-400">
+            {label}
+          </div>
+          <div className="h-px flex-1 bg-neutral-900" />
+        </div>
       </div>
     </section>
   );
@@ -897,9 +974,7 @@ function WorkflowNode({ title, body, strong }: WorkflowNodeProps) {
         (strong ? "border-neutral-500 bg-neutral-950" : "border-neutral-800 bg-black")
       }
     >
-      <p className="mb-1.5 text-[11px] uppercase tracking-[0.22em] text-neutral-400">
-        {title}
-      </p>
+      <p className="mb-1.5 text-[11px] uppercase tracking-[0.22em] text-neutral-400">{title}</p>
       <p className="text-[11px] leading-relaxed text-neutral-200 md:text-xs">{body}</p>
     </div>
   );
@@ -917,4 +992,40 @@ function MetricRow({ label, value }: MetricRowProps) {
       <span className="text-[11px] font-medium text-neutral-100">{value}</span>
     </div>
   );
+}
+
+/* ---------- tiny utilities ---------- */
+
+function randChoice<T>(arr: T[]) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function clampInt(v: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, Math.round(v)));
+}
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function formatTime(d: Date) {
+  // HH:MM:SS local
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+}
+
+function makePlausibleEvent() {
+  const now = new Date();
+  const time = formatTime(now);
+
+  const samples = [
+    { label: "Intake", text: "Detected new request → assigned route + SLA." },
+    { label: "Intake", text: "Ingested ticket metadata → enriched with policy tags." },
+    { label: "Synthesis", text: "Drafted summary + linked sources for reviewer." },
+    { label: "Synthesis", text: "Compiled decision brief → options + tradeoffs." },
+    { label: "Execution", text: "Prepared update payload → awaiting approval." },
+    { label: "Execution", text: "Generated draft response → queued for human review." },
+  ] as const;
+
+  const pick = randChoice([...samples]);
+  return { time, label: pick.label, text: pick.text };
 }
