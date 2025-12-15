@@ -1,146 +1,41 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #030303;
+  --foreground: #ffffff;
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.03);
 }
 
 body {
-  background: transparent;
-  color: inherit;
-  font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont,
-    "SF Pro Text", "SF Pro Display", sans-serif;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
 }
 
-
-@keyframes glow {
-  0% {
-    filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.4));
-  }
-  50% {
-    filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.7));
-  }
-  100% {
-    filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.4));
-  }
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #000;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 10px;
 }
 
-.animate-glow {
-  animation: glow 6s ease-in-out infinite;
+/* Utilities for that "Unique" feel */
+.text-glow {
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
 }
 
-html {
-  scroll-behavior: smooth;
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
 }
-
-
-.neural-layer {
-  position: absolute;
-  width: 140%;
-  height: 140%;
-  left: -20%;
-  top: -20%;
-  filter: blur(40px);
-  opacity: 0.65;
-  transform-origin: center;
-}
-
-.neural-layer-1 {
-  background: radial-gradient(circle at 20% 0%, #a855f7 0, transparent 55%);
-  animation: neuralFloat1 24s ease-in-out infinite alternate;
-}
-
-.neural-layer-2 {
-  background: radial-gradient(circle at 80% 20%, #38bdf8 0, transparent 55%);
-  mix-blend-mode: screen;
-  animation: neuralFloat2 28s ease-in-out infinite alternate;
-}
-
-.neural-layer-3 {
-  background: radial-gradient(circle at 50% 100%, #f472b6 0, transparent 55%);
-  mix-blend-mode: screen;
-  animation: neuralFloat3 32s ease-in-out infinite alternate;
-}
-
-@keyframes neuralFloat1 {
-  0% {
-    transform: translate3d(-10px, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(10px, -10px, 0) scale(1.05);
-  }
-  100% {
-    transform: translate3d(-15px, 10px, 0) scale(1.03);
-  }
-}
-
-@keyframes neuralFloat2 {
-  0% {
-    transform: translate3d(10px, -10px, 0) scale(1.02);
-  }
-  50% {
-    transform: translate3d(-10px, 5px, 0) scale(1.07);
-  }
-  100% {
-    transform: translate3d(15px, -5px, 0) scale(1.04);
-  }
-}
-
-@keyframes neuralFloat3 {
-  0% {
-    transform: translate3d(0, 10px, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(-5px, -5px, 0) scale(1.06);
-  }
-  100% {
-    transform: translate3d(8px, 5px, 0) scale(1.03);
-  }
-}
-@keyframes grain {
-  0%, 100% {
-    transform: translate(0, 0);
-  }
-  20% {
-    transform: translate(-5%, -10%);
-  }
-  40% {
-    transform: translate(-15%, 5%);
-  }
-  60% {
-    transform: translate(7%, -5%);
-  }
-  80% {
-    transform: translate(10%, 10%);
-  }
-}
-@keyframes spin_slow {
-   from {
-     transform: rotate(0deg);
-   }
-   to {
-     transform: rotate(360deg);
-   }
- }
-body {
-  background-color: #000000;
-  color: #e5e5e5;
-  font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont,
-  "SF Pro Text", "SF Pro Display", sans-serif;
-}
-
-
