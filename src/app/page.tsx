@@ -6,6 +6,12 @@ import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
+function scrollToId(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const y = el.getBoundingClientRect().top + window.scrollY - 84;
+  window.scrollTo({ top: y, behavior: "smooth" });
+}
 
 const FIELDS = [
   { k: "RAG", d: "Grounded retrieval systems." },
