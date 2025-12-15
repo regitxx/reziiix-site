@@ -1,57 +1,31 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion, useScroll } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion, useScroll } from "framer-motion";
 
-/** ---------------- TYPES / THEMES ---------------- */
+/** ---------------- TYPES ---------------- */
 
 type Theme = {
-  name: string;
   bg: string;
   ink: string;
   muted: string;
-  card: string;
+  soft: string;
   border: string;
-  a: string;
-  b: string;
-  c: string;
+  accentA: string;
+  accentB: string;
+  accentC: string;
 };
 
-const THEMES: Theme[] = [
-  {
-    name: "Studio Bright",
-    bg: "#F7F7F4",
-    ink: "#0B0B0C",
-    muted: "rgba(11,11,12,0.62)",
-    card: "rgba(255,255,255,0.72)",
-    border: "rgba(11,11,12,0.10)",
-    a: "#5B21B6",
-    b: "#0284C7",
-    c: "#F97316",
-  },
-  {
-    name: "Clean Mint",
-    bg: "#F5FAF7",
-    ink: "#07110B",
-    muted: "rgba(7,17,11,0.62)",
-    card: "rgba(255,255,255,0.72)",
-    border: "rgba(7,17,11,0.10)",
-    a: "#16A34A",
-    b: "#0F766E",
-    c: "#1D4ED8",
-  },
-  {
-    name: "Punch",
-    bg: "#FBF7FA",
-    ink: "#12060F",
-    muted: "rgba(18,6,15,0.62)",
-    card: "rgba(255,255,255,0.70)",
-    border: "rgba(18,6,15,0.10)",
-    a: "#DB2777",
-    b: "#F59E0B",
-    c: "#22C55E",
-  },
-];
+const THEME: Theme = {
+  bg: "#F6F2EA", // museum paper
+  ink: "#0B0B0C",
+  muted: "rgba(11,11,12,0.62)",
+  soft: "rgba(255,255,255,0.70)",
+  border: "rgba(11,11,12,0.12)",
+  accentA: "#1D4ED8", // cobalt
+  accentB: "#F97316", // orange
+  accentC: "#10B981", // emerald
+};
 
 type Capability = {
   title: string;
@@ -74,42 +48,16 @@ function scrollToId(id: string) {
   window.scrollTo({ top: y, behavior: "smooth" });
 }
 
-/** ---------------- THEME BACKGROUND (GLITCH-FREE) ---------------- */
-
-function ThemeBackground({ theme }: { theme: Theme }) {
-  return (
-    <motion.div
-      key={theme.name}
-      className="fixed inset-0 -z-10"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.55, ease: "easeOut" }}
-      style={{
-        background: `
-          radial-gradient(1100px 520px at 18% 10%, ${theme.a}18, transparent 60%),
-          radial-gradient(900px 520px at 82% 18%, ${theme.b}14, transparent 62%),
-          radial-gradient(880px 620px at 52% 88%, ${theme.c}12, transparent 68%),
-          ${theme.bg}
-        `,
-      }}
-    />
-  );
-}
-
-/** ---------------- MAIN ---------------- */
+/** ---------------- PAGE ---------------- */
 
 export default function HomePage() {
   const reduceMotion = useReducedMotion();
+  const theme = THEME;
 
-  const [t, setT] = useState(0);
-  const theme = THEMES[t % THEMES.length];
-
-  // subtle cursor glow for the whole page (calm)
+  // cursor light — but “print-like” (subtle)
   const [cursor, setCursor] = useState({ x: 0, y: 0, on: false });
   useEffect(() => {
-    const mm = (e: MouseEvent) =>
-      setCursor({ x: e.clientX, y: e.clientY, on: true });
+    const mm = (e: MouseEvent) => setCursor({ x: e.clientX, y: e.clientY, on: true });
     const leave = () => setCursor((p) => ({ ...p, on: false }));
     window.addEventListener("mousemove", mm);
     window.addEventListener("mouseleave", leave);
@@ -122,7 +70,7 @@ export default function HomePage() {
   // active nav highlight
   const [active, setActive] = useState("top");
   useEffect(() => {
-    const ids = ["top", "truth", "belief", "proof", "ecosystem", "engage", "contact"];
+    const ids = ["top", "sell", "deliver", "proof", "stack", "engage", "contact"];
     const obs = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
@@ -144,32 +92,32 @@ export default function HomePage() {
   const capabilities: Capability[] = useMemo(
     () => [
       {
-        title: "Capability Build",
-        subtitle: "AI inside your organization — owned and evolvable.",
-        body: "We build systems inside your environment so your team owns the architecture, the constraints, and the evolution — not a vendor.",
-        bullets: ["Designed for ownership", "Patterns your team can extend", "Built like real software"],
-        tag: "Core",
+        tag: "Deliverable",
+        title: "Internal AI Capability",
+        subtitle: "Not automation scripts. A durable system your team owns.",
+        body: "We design an internal capability: governed agent behavior, retrieval, connectors, observability, and a safe operating model—inside your environment.",
+        bullets: ["Owned architecture", "Governed behavior", "Observable + maintainable", "Built like software"],
       },
       {
-        title: "Governance + Control",
-        subtitle: "Policy, review paths, and auditability by design.",
-        body: "Enterprise reality: approvals, access boundaries, human oversight, and traceability. We build with governance as a first-class requirement.",
-        bullets: ["Human-in-the-loop paths", "Audit trails and observability", "Scoped permissions"],
-        tag: "Trust",
+        tag: "Deliverable",
+        title: "RAG + Knowledge Graph Brain",
+        subtitle: "The “brain” that stays consistent, explainable, and expandable.",
+        body: "We implement retrieval grounded in your knowledge (docs + structured graph). The point is stability, traceability, and controllable behavior—so it works in real business conditions.",
+        bullets: ["Grounded answers", "Structured reasoning", "Permission-aware retrieval", "Change-safe evolution"],
       },
       {
-        title: "Integration Engineering",
-        subtitle: "Your tools remain the interface.",
-        body: "We integrate where work already lives — Microsoft 365, Copilot Studio, Slack, CRMs, service desks, and internal APIs — so adoption is natural.",
-        bullets: ["M365 + Copilot Studio", "CRM + service desk", "Custom connectors"],
-        tag: "Stack",
+        tag: "Deliverable",
+        title: "Agent Automations",
+        subtitle: "Agents that act inside your tools — with control.",
+        body: "We ship agents that operate where your work already happens (M365 / Slack / CRM / service desks) with approval gates, constraints, and audit trails.",
+        bullets: ["Human-in-the-loop", "Scoped permissions", "Audit trails", "Real integrations"],
       },
       {
-        title: "Enablement",
-        subtitle: "We can teach your team to operate and extend it.",
-        body: "If you want in-house capability, we run workshops and build alongside your team — so you’re not dependent on us for every change.",
-        bullets: ["Copilot Studio / M365 agents", "Workshops + templates", "Operating playbooks"],
-        tag: "Optional",
+        tag: "Deliverable",
+        title: "Enablement (Optional)",
+        subtitle: "If you want your team to build too.",
+        body: "Workshops + patterns so your team can operate, extend, and own the system. We can also build Microsoft-native agents in Copilot Studio when that’s the best fit.",
+        bullets: ["Workshops", "Templates", "Governance playbooks", "Copilot Studio / M365 agents"],
       },
     ],
     []
@@ -196,66 +144,66 @@ export default function HomePage() {
   );
 
   return (
-    <main style={{ background: theme.bg, color: theme.ink }} className="min-h-screen">
-      {/* theme compositor (fixes theme artifacts) */}
-      <AnimatePresence mode="wait">
-        <ThemeBackground theme={theme} />
-      </AnimatePresence>
+    <main
+      className="min-h-screen"
+      style={{
+        background: theme.bg,
+        color: theme.ink,
+      }}
+    >
+      {/* “paper” + halftone + edge vibes */}
+      <BackgroundPrint theme={theme} />
 
-      {/* cursor ambient (subtle) */}
+      {/* cursor ambient (very subtle) */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-[5]">
         <motion.div
           animate={{
             opacity: cursor.on ? 1 : 0,
-            x: cursor.x - 240,
-            y: cursor.y - 240,
+            x: cursor.x - 260,
+            y: cursor.y - 260,
           }}
-          transition={{ type: "spring", stiffness: 220, damping: 30, mass: 0.6 }}
-          className="absolute h-[480px] w-[480px] rounded-full blur-3xl"
+          transition={{ type: "spring", stiffness: 200, damping: 28, mass: 0.6 }}
+          className="absolute h-[520px] w-[520px] rounded-full blur-3xl"
           style={{
-            background: `radial-gradient(circle at 30% 30%, ${theme.a}12, transparent 60%),
-                         radial-gradient(circle at 70% 40%, ${theme.b}10, transparent 60%),
-                         radial-gradient(circle at 50% 80%, ${theme.c}08, transparent 62%)`,
+            background: `
+              radial-gradient(circle at 30% 30%, ${theme.accentA}10, transparent 62%),
+              radial-gradient(circle at 70% 40%, ${theme.accentB}10, transparent 62%),
+              radial-gradient(circle at 50% 80%, ${theme.accentC}08, transparent 65%)
+            `,
           }}
         />
       </div>
 
-      {/* TOP NAV */}
+      {/* NAV */}
       <header
         className="sticky top-0 z-50 backdrop-blur-xl"
         style={{
-          background: `${theme.bg}cc`,
+          background: "rgba(246,242,234,0.78)",
           borderBottom: `1px solid ${theme.border}`,
         }}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <button onClick={() => scrollToId("top")} className="flex items-center gap-3">
-            <div
-              className="h-9 w-9 rounded-xl"
-              style={{
-                border: `1px solid ${theme.border}`,
-                background: `linear-gradient(135deg, ${theme.a}22, ${theme.b}18)`,
-              }}
-            />
+            <Mark theme={theme} />
             <div className="leading-none text-left">
-              <div className="text-[11px] uppercase tracking-[0.40em]">REZIIIX</div>
+              <div className="text-[11px] uppercase tracking-[0.42em]">REZIIIX</div>
               <div className="mt-1 text-[11px]" style={{ color: theme.muted }}>
-                AI capability studio
+                build internal AI capability
               </div>
             </div>
           </button>
 
           <nav className="hidden items-center gap-1 md:flex">
-            <NavBtn theme={theme} active={active === "truth"} onClick={() => scrollToId("truth")}>
-              Truth
+            <NavBtn theme={theme} active={active === "sell"} onClick={() => scrollToId("sell")}>
+              What you buy
             </NavBtn>
-            <NavBtn theme={theme} active={active === "belief"} onClick={() => scrollToId("belief")}>
-              Belief
+            <NavBtn theme={theme} active={active === "deliver"} onClick={() => scrollToId("deliver")}>
+              Deliverables
             </NavBtn>
             <NavBtn theme={theme} active={active === "proof"} onClick={() => scrollToId("proof")}>
               Proof
             </NavBtn>
-            <NavBtn theme={theme} active={active === "ecosystem"} onClick={() => scrollToId("ecosystem")}>
+            <NavBtn theme={theme} active={active === "stack"} onClick={() => scrollToId("stack")}>
               Stack
             </NavBtn>
             <NavBtn theme={theme} active={active === "engage"} onClick={() => scrollToId("engage")}>
@@ -269,20 +217,9 @@ export default function HomePage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setT((x) => x + 1)}
-              className="rounded-full px-3 py-2 text-[12px] transition"
-              style={{
-                border: `1px solid ${theme.border}`,
-                background: "rgba(255,255,255,0.55)",
-              }}
-            >
-              Theme: {theme.name}
-            </button>
-            <button
-              type="button"
               onClick={() => scrollToId("contact")}
               className="rounded-full px-4 py-2 text-[12px] font-semibold text-white transition"
-              style={{ background: theme.a }}
+              style={{ background: theme.ink }}
             >
               Start
             </button>
@@ -290,331 +227,218 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* HERO (MANIFESTO) */}
+      {/* HERO — editorial / manifesto */}
       <section id="top" className="relative">
-        <div className="mx-auto max-w-6xl px-4 py-10 md:py-16">
-          <div
-            className="relative overflow-hidden rounded-[40px] p-7 md:p-10"
-            style={{
-              border: `1px solid ${theme.border}`,
-              background: theme.card,
-            }}
-          >
-            {/* “paper” depth */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background: `
-                  linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.20)),
-                  radial-gradient(820px 420px at 18% 0%, rgba(255,255,255,0.30), transparent 60%),
-                  radial-gradient(720px 420px at 98% 12%, rgba(255,255,255,0.26), transparent 62%)
-                `,
-                opacity: 0.60,
-              }}
-            />
-
-            {/* top bar */}
-            <div className="relative flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span
-                  className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[11px] uppercase tracking-[0.30em]"
-                  style={{
-                    border: `1px solid ${theme.border}`,
-                    background: "rgba(255,255,255,0.60)",
-                    color: theme.muted,
-                  }}
-                >
-                  <span className="h-2 w-2 rounded-full" style={{ background: theme.b }} />
-                  a point of view
-                </span>
-                <span
-                  className="hidden sm:inline-flex rounded-full px-3 py-2 text-[11px] uppercase tracking-[0.30em]"
-                  style={{
-                    border: `1px solid ${theme.border}`,
-                    background: "rgba(255,255,255,0.45)",
-                    color: theme.muted,
-                  }}
-                >
-                  calm, governed systems
-                </span>
+        <div className="mx-auto max-w-6xl px-4 py-12 md:py-16">
+          <div className="grid gap-8 md:grid-cols-[1.15fr,0.85fr] md:items-start">
+            <div className="relative">
+              <div className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[11px] uppercase tracking-[0.30em]"
+                   style={{ border: `1px solid ${theme.border}`, background: theme.soft, color: theme.muted }}>
+                <span className="h-2 w-2 rounded-full" style={{ background: theme.accentA }} />
+                not a generic automation studio
               </div>
 
-              <div
-                className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[11px] uppercase tracking-[0.30em]"
-                style={{
-                  border: `1px solid ${theme.border}`,
-                  background: "rgba(255,255,255,0.60)",
-                  color: theme.muted,
-                }}
+              <motion.h1
+                initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: reduceMotion ? 0.1 : 0.85, ease: [0.2, 1, 0.2, 1] }}
+                className="mt-6 text-[clamp(2.8rem,6.4vw,5.8rem)] font-semibold leading-[0.90] tracking-[-0.06em]"
               >
-                <span className="h-2 w-2 rounded-full" style={{ background: theme.a }} />
-                studio build
-              </div>
-            </div>
-
-            {/* typography grid */}
-            <div className="relative mt-8 grid gap-10 md:grid-cols-[1.15fr,0.85fr] md:items-start">
-              {/* left */}
-              <div>
-                <motion.h1
-                  initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: reduceMotion ? 0.1 : 0.8,
-                    ease: [0.2, 1, 0.2, 1],
-                  }}
-                  className="text-[clamp(2.4rem,5.6vw,5.1rem)] font-semibold leading-[0.92] tracking-[-0.05em]"
-                >
-                  Most companies will never{" "}
-                  <span className="relative inline-block">
-                    own their AI
-                    <span
-                      aria-hidden
-                      className="absolute left-0 -bottom-2 h-[8px] w-full rounded-full"
-                      style={{
-                        background: `linear-gradient(90deg, ${theme.a}55, ${theme.b}45, ${theme.c}35)`,
-                        filter: "blur(10px)",
-                        opacity: 0.55,
-                      }}
-                    />
-                  </span>
-                  .
-                </motion.h1>
-
-                <p className="mt-6 max-w-xl text-[15px] leading-relaxed" style={{ color: theme.muted }}>
-                  They’ll integrate tools, subscribe to platforms, and deploy copilots they don’t fully control.
-                  Over time, “automation” becomes dependency.
-                </p>
-
-                {/* actions */}
-                <div className="mt-8 flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={() => scrollToId("belief")}
-                    className="rounded-2xl px-6 py-3 text-sm font-semibold text-white transition"
-                    style={{ background: theme.a }}
-                  >
-                    See our belief
-                  </button>
-                  <button
-                    onClick={() => scrollToId("contact")}
-                    className="rounded-2xl px-6 py-3 text-sm transition"
+                Build an{" "}
+                <span className="relative inline-block">
+                  internal AI capability
+                  <span
+                    aria-hidden
+                    className="absolute left-0 -bottom-3 h-[10px] w-full rounded-full"
                     style={{
-                      border: `1px solid ${theme.border}`,
-                      background: "rgba(255,255,255,0.55)",
-                      color: theme.ink,
+                      background: `linear-gradient(90deg, ${theme.accentA}55, ${theme.accentB}45, ${theme.accentC}35)`,
+                      filter: "blur(12px)",
+                      opacity: 0.55,
                     }}
-                  >
-                    Start a conversation
-                  </button>
-                </div>
-
-                {/* micro-proof row */}
-                <div className="mt-9 grid gap-3 md:grid-cols-3">
-                  <HeroProof
-                    theme={theme}
-                    title="Owned"
-                    desc="Capability built in your environment — not rented."
-                    dot={theme.b}
                   />
-                  <HeroProof
-                    theme={theme}
-                    title="Governed"
-                    desc="Policies, review paths, and auditability by design."
-                    dot={theme.a}
-                  />
-                  <HeroProof
-                    theme={theme}
-                    title="Evolvable"
-                    desc="Patterns your team can extend over time."
-                    dot={theme.c}
-                  />
-                </div>
-              </div>
+                </span>{" "}
+                your company can own.
+              </motion.h1>
 
-              {/* right: manifesto card */}
-              <div
-                className="relative overflow-hidden rounded-[30px] p-6 md:p-7"
-                style={{
-                  border: `1px solid ${theme.border}`,
-                  background: "rgba(255,255,255,0.62)",
-                }}
-              >
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute -inset-16 opacity-60 blur-3xl"
-                  style={{
-                    background: `
-                      radial-gradient(circle at 15% 20%, ${theme.a}20, transparent 55%),
-                      radial-gradient(circle at 90% 25%, ${theme.b}16, transparent 60%),
-                      radial-gradient(circle at 55% 90%, ${theme.c}12, transparent 62%)
-                    `,
-                  }}
-                />
-
-                <div className="relative">
-                  <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
-                    The belief
-                  </div>
-                  <div className="mt-4 text-[18px] font-semibold leading-snug tracking-[-0.02em]">
-                    AI should be an internal capability.
-                  </div>
-                  <div className="mt-3 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
-                    Reziiix builds systems inside your organization — aligned to your tools, policies, and people —
-                    so you own the evolution, not a vendor.
-                  </div>
-
-                  <div className="mt-6 grid gap-3">
-                    <HeroLine theme={theme} k="Outcome" v="Ownership over novelty." />
-                    <HeroLine theme={theme} k="Interface" v="Your tools stay the UI." />
-                    <HeroLine theme={theme} k="Reality" v="Governance, audit trails, human control." />
-                  </div>
-
-                  <div
-                    className="mt-7 flex items-center justify-between rounded-2xl px-4 py-3"
-                    style={{
-                      border: `1px solid ${theme.border}`,
-                      background: "rgba(255,255,255,0.55)",
-                    }}
-                  >
-                    <span className="text-[10px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
-                      REZIIIX
-                    </span>
-                    <span className="text-[10px] uppercase tracking-[0.30em]" style={{ color: theme.a }}>
-                      capability studio
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* footer stripe */}
-            <div
-              className="relative mt-10 flex items-center justify-between gap-4 border-t pt-5"
-              style={{ borderColor: theme.border, color: theme.muted }}
-            >
-              <span className="text-[11px] uppercase tracking-[0.30em]">Singapore · Global</span>
-              <span className="text-[11px] uppercase tracking-[0.30em]">Built for enterprise constraints</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* TRUTH */}
-      <section id="truth" className="border-t" style={{ borderColor: theme.border }}>
-        <div className="mx-auto max-w-6xl px-4 py-14">
-          <div className="grid gap-8 md:grid-cols-[1.05fr,0.95fr] md:items-start">
-            <div>
-              <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
-                The truth
-              </div>
-              <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                AI adoption is optimized for speed —{" "}
-                <span style={{ color: theme.a }}>not durability</span>.
-              </h2>
-              <p className="mt-6 max-w-xl text-[14px] leading-relaxed" style={{ color: theme.muted }}>
-                Most initiatives start as pilots and end as dependencies: fragmented logic, unclear responsibility,
-                and systems no one can confidently govern or evolve.
+              <p className="mt-6 max-w-xl text-[15px] leading-relaxed" style={{ color: theme.muted }}>
+                You don’t “buy automations.” You buy a durable system: governed agents, a grounded knowledge brain (RAG + KG),
+                integrations into your stack, and an operating model your team understands.
               </p>
+
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => scrollToId("sell")}
+                  className="rounded-2xl px-6 py-3 text-sm font-semibold text-white"
+                  style={{ background: theme.ink }}
+                >
+                  Show me in plain language
+                </button>
+                <button
+                  onClick={() => scrollToId("proof")}
+                  className="rounded-2xl px-6 py-3 text-sm"
+                  style={{ border: `1px solid ${theme.border}`, background: theme.soft, color: theme.ink }}
+                >
+                  Proof / Research
+                </button>
+              </div>
+
+              <div className="mt-10 grid gap-3 md:grid-cols-3">
+                <KeyStat theme={theme} k="Outcome" v="Less manual work, more control." />
+                <KeyStat theme={theme} k="Ownership" v="Built inside your environment." />
+                <KeyStat theme={theme} k="Trust" v="Governance + auditability." />
+              </div>
             </div>
 
-            <div className="rounded-[30px] p-6" style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
-              <div className="text-[11px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
-                What it turns into
-              </div>
-              <div className="mt-4 space-y-3 text-[13px]" style={{ color: theme.muted }}>
-                <div>• Automations scattered across tools</div>
-                <div>• Vendor dependency and locked knowledge</div>
-                <div>• Security/compliance discomfort</div>
-                <div>• No clear owner when it breaks</div>
-              </div>
-            </div>
+            <HeroPoster theme={theme} />
           </div>
         </div>
       </section>
 
-      {/* BELIEF + CAPABILITIES */}
-      <section id="belief" className="border-t" style={{ borderColor: theme.border }}>
+      {/* WHAT YOU BUY — plain language */}
+      <section id="sell" className="border-t" style={{ borderColor: theme.border }}>
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-10 md:grid-cols-[0.95fr,1.05fr] md:items-start">
             <div>
               <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
-                Our belief
+                What you buy
               </div>
-              <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                AI should be an{" "}
-                <span style={{ color: theme.b }}>internal capability</span>.
+              <h2 className="mt-5 text-[clamp(2.0rem,4.2vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
+                A capability your team can{" "}
+                <span style={{ color: theme.accentA }}>run</span>.
               </h2>
               <p className="mt-6 max-w-xl text-[14px] leading-relaxed" style={{ color: theme.muted }}>
-                Like engineering, finance, or security — AI should live inside the organization,
-                aligned to its tools, data boundaries, and operating reality.
+                Think of it like an internal “AI department in a box”:
+                it can answer questions grounded in your knowledge, take actions in your tools,
+                and behave safely under your policies.
               </p>
 
-              <div className="mt-8 flex flex-wrap gap-2">
-                <Pill theme={theme}>Owned</Pill>
-                <Pill theme={theme}>Governed</Pill>
-                <Pill theme={theme}>Evolvable</Pill>
-                <Pill theme={theme}>Observable</Pill>
-              </div>
-
-              <div
-                className="mt-8 rounded-3xl p-6"
-                style={{ border: `1px solid ${theme.border}`, background: theme.card }}
-              >
-                <div className="text-[11px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
-                  Also available
+              <div className="mt-8 rounded-[28px] p-6" style={{ border: `1px solid ${theme.border}`, background: theme.soft }}>
+                <div className="text-[10px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
+                  Simple mental model
                 </div>
-                <div className="mt-3 text-[14px] font-semibold">Copilot Studio / M365 agents</div>
-                <div className="mt-2 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
-                  If needed: we build Microsoft-native agents and can run an enablement workshop for your team.
+                <div className="mt-4 grid gap-3 text-[13px]" style={{ color: theme.muted }}>
+                  <div><b style={{ color: theme.ink }}>Brain</b>: RAG + Knowledge Graph for grounded reasoning.</div>
+                  <div><b style={{ color: theme.ink }}>Hands</b>: agents that act in your tools (M365/Slack/CRM).</div>
+                  <div><b style={{ color: theme.ink }}>Rules</b>: governance, approvals, logging, boundaries.</div>
                 </div>
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              {capabilities.map((c) => (
-                <button
-                  key={c.title}
-                  onClick={() => setOpen(c)}
-                  className="group text-left rounded-[28px] p-6 transition"
-                  style={{ border: `1px solid ${theme.border}`, background: theme.card }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-[10px] uppercase tracking-[0.32em]" style={{ color: theme.muted }}>
-                        {c.tag}
-                      </div>
-                      <div className="mt-3 text-[16px] font-semibold">{c.title}</div>
-                      <div className="mt-2 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
-                        {c.subtitle}
-                      </div>
-                    </div>
-                    <span
-                      className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                      style={{
-                        color: theme.a,
-                        border: `1px solid ${theme.border}`,
-                        background: "rgba(255,255,255,0.55)",
-                      }}
-                    >
-                      →
-                    </span>
-                  </div>
-
-                  <div className="mt-6 h-[10px] w-full rounded-full overflow-hidden" style={{ background: "rgba(0,0,0,0.06)" }}>
-                    <div
-                      className="h-full w-[62%] rounded-full transition-all group-hover:w-[88%]"
-                      style={{ background: `linear-gradient(90deg, ${theme.a}, ${theme.b})` }}
-                    />
-                  </div>
-                </button>
-              ))}
+            <div className="grid gap-4">
+              <BigCallout theme={theme} title="You keep the control." body="No black-box platform dependency. You own the architecture and the evolution." />
+              <BigCallout theme={theme} title="People understand it." body="We build it so non-technical teams can trust it, operate it, and extend it." />
+              <BigCallout theme={theme} title="It survives reality." body="Security constraints, approvals, audits, tool sprawl, changing documents—built for that." />
             </div>
           </div>
         </div>
       </section>
 
-      {/* PROOF (RESEARCH) */}
+      {/* DELIVERABLES — radically not bento cards: “catalog wall” */}
+      <section id="deliver" className="border-t" style={{ borderColor: theme.border }}>
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <div className="flex items-end justify-between gap-6">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
+                Deliverables
+              </div>
+              <h2 className="mt-5 text-[clamp(2.0rem,4.2vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
+                What we actually ship.
+              </h2>
+            </div>
+            <div className="hidden md:block text-[12px]" style={{ color: theme.muted }}>
+              Click any item →
+            </div>
+          </div>
+
+          <div className="mt-10 grid gap-3 md:grid-cols-2">
+            {capabilities.map((c, idx) => (
+              <button
+                key={c.title}
+                onClick={() => setOpen(c)}
+                className="group text-left"
+                style={{ outline: "none" }}
+              >
+                <div
+                  className="relative overflow-hidden rounded-[26px] p-6"
+                  style={{
+                    border: `1px solid ${theme.border}`,
+                    background: theme.soft,
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.32em]" style={{ color: theme.muted }}>
+                        {c.tag}
+                      </div>
+                      <div className="mt-3 text-[18px] font-semibold tracking-[-0.02em]">
+                        {c.title}
+                      </div>
+                      <div className="mt-2 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
+                        {c.subtitle}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-2">
+                      <div
+                        className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                        style={{
+                          border: `1px solid ${theme.border}`,
+                          background: "rgba(255,255,255,0.70)",
+                          color: theme.ink,
+                        }}
+                      >
+                        OPEN
+                      </div>
+                      <div className="text-[10px] uppercase tracking-[0.24em]" style={{ color: theme.muted }}>
+                        {String(idx + 1).padStart(2, "0")}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 h-[1px]" style={{ background: theme.border }} />
+
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {c.bullets.slice(0, 3).map((b) => (
+                      <span
+                        key={b}
+                        className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.22em]"
+                        style={{
+                          border: `1px solid ${theme.border}`,
+                          background: "rgba(255,255,255,0.62)",
+                          color: theme.muted,
+                        }}
+                      >
+                        {b}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* edge stripe */}
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute right-0 top-0 h-full w-[10px] opacity-70"
+                    style={{
+                      background: `linear-gradient(180deg, ${theme.accentA}55, ${theme.accentB}45, ${theme.accentC}35)`,
+                    }}
+                  />
+
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute -inset-20 opacity-0 group-hover:opacity-60 transition-opacity blur-3xl"
+                    style={{
+                      background: `radial-gradient(circle at 20% 20%, ${theme.accentA}22, transparent 55%),
+                                   radial-gradient(circle at 80% 30%, ${theme.accentB}20, transparent 58%),
+                                   radial-gradient(circle at 45% 90%, ${theme.accentC}16, transparent 62%)`,
+                    }}
+                  />
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PROOF — your PolyU research */}
       <section id="proof" className="border-t" style={{ borderColor: theme.border }}>
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-10 md:grid-cols-[1.05fr,0.95fr] md:items-start">
@@ -622,73 +446,84 @@ export default function HomePage() {
               <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
                 Proof
               </div>
-              <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                Grounded in{" "}
-                <span style={{ color: theme.c }}>active research</span>.
+              <h2 className="mt-5 text-[clamp(2.0rem,4.2vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
+                This isn’t just business.
+                <br />
+                It’s{" "}
+                <span style={{ color: theme.accentB }}>research-grade</span>{" "}
+                engineering.
               </h2>
               <p className="mt-6 max-w-xl text-[14px] leading-relaxed" style={{ color: theme.muted }}>
-                Alongside commercial work, we contribute to research in autonomous systems and social robotics at
-                The Hong Kong Polytechnic University (Research Lab for Advanced Social Robotics).
-              </p>
-              <p className="mt-4 max-w-xl text-[14px] leading-relaxed" style={{ color: theme.muted }}>
-                That work informs how we build for businesses: systems that reason, explain themselves, and stay stable over time —
-                not just impressive in demos.
+                We work on developing the “brain” of robots — including RAG + Knowledge Graph systems and agent automation —
+                at The Hong Kong Polytechnic University (Research Lab for Advanced Social Robotics).
               </p>
 
-              <div className="mt-6">
+              <div className="mt-7 flex flex-wrap gap-3">
                 <a
-                  className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-semibold"
-                  style={{
-                    border: `1px solid ${theme.border}`,
-                    background: "rgba(255,255,255,0.55)",
-                    color: theme.ink,
-                  }}
                   href="https://www.polyu.edu.hk/sd/research/research-centres-and-labs/research-lab-for-advanced-social-robotics/?sc_lang=en"
                   target="_blank"
                   rel="noreferrer"
+                  className="rounded-2xl px-6 py-3 text-sm font-semibold text-white"
+                  style={{ background: theme.ink }}
                 >
                   View the lab →
                 </a>
+                <button
+                  onClick={() => scrollToId("contact")}
+                  className="rounded-2xl px-6 py-3 text-sm"
+                  style={{ border: `1px solid ${theme.border}`, background: theme.soft, color: theme.ink }}
+                >
+                  Work with us
+                </button>
               </div>
             </div>
 
-            <div className="rounded-[30px] p-6" style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
-              <div className="text-[11px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
-                What we work on
+            <div className="rounded-[30px] p-7" style={{ border: `1px solid ${theme.border}`, background: theme.soft }}>
+              <div className="text-[10px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
+                Research themes
               </div>
-              <div className="mt-4 space-y-3 text-[13px]" style={{ color: theme.muted }}>
-                <div>• Cognitive “brain” architectures for social robots</div>
-                <div>• RAG + Knowledge Graph reasoning systems</div>
-                <div>• Agent-based automation under real constraints</div>
+
+              <div className="mt-5 space-y-3 text-[13px]" style={{ color: theme.muted }}>
+                <div>• Cognitive architectures for autonomous systems</div>
+                <div>• Grounded reasoning via RAG + Knowledge Graphs</div>
+                <div>• Agent behavior under constraints and safety boundaries</div>
+              </div>
+
+              <div className="mt-7 rounded-[22px] p-5" style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.65)" }}>
+                <div className="text-[10px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
+                  What that means for businesses
+                </div>
+                <div className="mt-3 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
+                  Your systems are designed to be stable, explainable, and evolvable — not just impressive.
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* STACK (NASA) */}
-      <section id="ecosystem" className="border-t" style={{ borderColor: theme.border }}>
+      {/* STACK — NASA ecosystem */}
+      <section id="stack" className="border-t" style={{ borderColor: theme.border }}>
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-10 md:grid-cols-[1fr,1fr] md:items-center">
             <div>
               <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
                 Stack
               </div>
-              <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                Built to live inside your{" "}
-                <span style={{ color: theme.c }}>environment</span>.
+              <h2 className="mt-5 text-[clamp(2.0rem,4.2vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
+                No platform adoption problem.
               </h2>
               <p className="mt-6 max-w-md text-[14px] leading-relaxed" style={{ color: theme.muted }}>
-                We integrate into the tools you already use — so adoption is natural and ownership stays internal.
-                Hover a tool to see the constellation.
+                We build inside your stack. Your tools stay the interface.
+                Hover a tool to see the constellation connect.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-2">
                 <Pill theme={theme}>M365</Pill>
                 <Pill theme={theme}>Copilot Studio</Pill>
                 <Pill theme={theme}>Slack</Pill>
-                <Pill theme={theme}>Service desk</Pill>
                 <Pill theme={theme}>CRM</Pill>
+                <Pill theme={theme}>Service desk</Pill>
                 <Pill theme={theme}>Internal APIs</Pill>
               </div>
             </div>
@@ -706,49 +541,35 @@ export default function HomePage() {
               <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
                 Engage
               </div>
-              <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                Choose how you want to{" "}
-                <span style={{ color: theme.a }}>build</span>.
+              <h2 className="mt-5 text-[clamp(2.0rem,4.2vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
+                Start small. Build durable. Then scale.
               </h2>
               <p className="mt-6 max-w-md text-[14px] leading-relaxed" style={{ color: theme.muted }}>
-                Calm, clear engagements. No platform dependency.
+                We’ll guide you to the smallest build that proves value and sets a foundation your team can extend.
               </p>
-
-              <div className="mt-8 rounded-[28px] p-6" style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
-                <div className="text-[10px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
-                  This is not for everyone
-                </div>
-                <div className="mt-3 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
-                  Reziiix works best with organizations that care about long-term ownership, operate under real constraints,
-                  and prefer clarity over novelty.
-                </div>
-              </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-              <OfferCard
+              <EngageCard
                 theme={theme}
-                title="Pilot capability"
-                price="Best start"
-                body="One focused system built inside your environment to establish patterns, trust, and governance."
-                bullets={["Fast scope", "Durable architecture", "Measurable outcome"]}
-                badge="Start"
+                title="Pilot"
+                sub="Best start"
+                body="One system shipped with governance + observability so it survives reality."
+                points={["Clear scope", "Durable patterns", "Measurable outcome"]}
               />
-              <OfferCard
+              <EngageCard
                 theme={theme}
-                title="Scale & embed"
-                price="For teams"
-                body="Expand across workflows with reusable patterns, observability, and operational ownership."
-                bullets={["Shared architecture", "Monitoring mindset", "Rollout support"]}
-                badge="Scale"
+                title="Scale"
+                sub="For teams"
+                body="Expand across workflows with reusable architecture and operating rhythms."
+                points={["Shared connectors", "Monitoring", "Rollout support"]}
               />
-              <OfferCard
+              <EngageCard
                 theme={theme}
-                title="Enablement"
-                price="Workshops"
-                body="Teach your team to build and operate safely (including Copilot Studio / M365 agents)."
-                bullets={["Hands-on", "Templates", "Governance included"]}
-                badge="Teach"
+                title="Enable"
+                sub="Workshops"
+                body="Teach your team to operate and extend the capability safely."
+                points={["Templates", "Governance playbooks", "Copilot Studio optional"]}
               />
             </div>
           </div>
@@ -763,31 +584,25 @@ export default function HomePage() {
               <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
                 Contact
               </div>
-              <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                If this way of thinking{" "}
-                <span style={{ color: theme.b }}>resonates</span>,
-                let’s talk.
+              <h2 className="mt-5 text-[clamp(2.0rem,4.2vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
+                If you want ownership, not dependency —
+                <br />
+                we should talk.
               </h2>
-              <p className="mt-6 max-w-md text-[14px] leading-relaxed" style={{ color: theme.muted }}>
-                Start with a conversation — not a demo.
-              </p>
 
-              <div
-                className="mt-8 rounded-3xl p-6"
-                style={{ border: `1px solid ${theme.border}`, background: theme.card }}
-              >
+              <div className="mt-8 rounded-3xl p-6" style={{ border: `1px solid ${theme.border}`, background: theme.soft }}>
                 <div className="text-[11px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
                   Email
                 </div>
                 <div className="mt-2 text-[16px] font-semibold">hello@reziiix.com</div>
                 <div className="mt-2 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
-                  Keep it short: what you want, where it lives (tools), and what success looks like.
+                  Keep it short: goal, tools involved, constraints, and what success looks like.
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-3">
                   <button
                     className="rounded-2xl px-6 py-3 text-sm font-semibold text-white"
-                    style={{ background: theme.a }}
+                    style={{ background: theme.ink }}
                     onClick={() => {
                       const subject = encodeURIComponent("REZIIIX — inquiry");
                       const body = encodeURIComponent(
@@ -800,10 +615,7 @@ export default function HomePage() {
                   </button>
                   <button
                     className="rounded-2xl px-6 py-3 text-sm"
-                    style={{
-                      border: `1px solid ${theme.border}`,
-                      background: "rgba(255,255,255,0.55)",
-                    }}
+                    style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.70)" }}
                     onClick={() => scrollToId("top")}
                   >
                     Back to top
@@ -816,12 +628,12 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="rounded-[30px] p-7" style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
+            <div className="rounded-[30px] p-7" style={{ border: `1px solid ${theme.border}`, background: theme.soft }}>
               <div className="text-[11px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
-                Quick note
+                Quick message
               </div>
               <div className="mt-3 text-[15px] font-semibold leading-tight">
-                Send a message in 30 seconds.
+                Send a note in 30 seconds.
               </div>
 
               <div className="mt-6 space-y-3">
@@ -831,24 +643,23 @@ export default function HomePage() {
                 <button
                   type="button"
                   className="w-full rounded-2xl px-4 py-3 text-sm font-semibold text-white"
-                  style={{ background: theme.b }}
+                  style={{ background: theme.ink }}
                 >
                   Send (static)
                 </button>
                 <div className="text-[11px]" style={{ color: theme.muted }}>
-                  We can wire this to a CRM later if you want.
+                  We can wire this to a CRM later.
                 </div>
               </div>
 
-              <div
-                className="mt-7 flex items-center justify-between rounded-2xl px-4 py-3"
-                style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
-              >
+              <div className="mt-7 h-[1px]" style={{ background: theme.border }} />
+
+              <div className="mt-6 flex items-center justify-between">
                 <span className="text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
                   REZIIIX
                 </span>
-                <span className="text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.a }}>
-                  studio build
+                <span className="text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.ink }}>
+                  internal AI capability
                 </span>
               </div>
             </div>
@@ -861,7 +672,77 @@ export default function HomePage() {
   );
 }
 
-/** ---------------- NAV + UI ---------------- */
+/** ---------------- VISUAL SYSTEM ---------------- */
+
+function BackgroundPrint({ theme }: { theme: Theme }) {
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
+      {/* base paper */}
+      <div className="absolute inset-0" style={{ background: theme.bg }} />
+
+      {/* halftone-ish vignette */}
+      <div
+        className="absolute inset-0 opacity-[0.55]"
+        style={{
+          background: `
+            radial-gradient(900px 600px at 14% 8%, rgba(0,0,0,0.06), transparent 60%),
+            radial-gradient(900px 600px at 92% 16%, rgba(0,0,0,0.05), transparent 62%),
+            radial-gradient(1000px 700px at 50% 92%, rgba(0,0,0,0.045), transparent 65%)
+          `,
+        }}
+      />
+
+      {/* crisp “print edges” */}
+      <div
+        className="absolute inset-0 opacity-[0.18]"
+        style={{
+          background: `
+            repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 1px, transparent 1px, transparent 18px)
+          `,
+          mixBlendMode: "multiply",
+        }}
+      />
+
+      {/* micro noise (cheap, no asset) */}
+      <div
+        className="absolute inset-0 opacity-[0.12]"
+        style={{
+          background:
+            "repeating-radial-gradient(circle at 20% 30%, rgba(0,0,0,0.04) 0px, rgba(0,0,0,0.04) 1px, transparent 1px, transparent 4px)",
+          mixBlendMode: "multiply",
+        }}
+      />
+
+      {/* accent “ink spills” */}
+      <div
+        className="absolute -inset-24 blur-3xl opacity-[0.22]"
+        style={{
+          background: `
+            radial-gradient(circle at 12% 10%, ${theme.accentA}22, transparent 60%),
+            radial-gradient(circle at 90% 18%, ${theme.accentB}1f, transparent 62%),
+            radial-gradient(circle at 56% 92%, ${theme.accentC}18, transparent 65%)
+          `,
+        }}
+      />
+    </div>
+  );
+}
+
+function Mark({ theme }: { theme: Theme }) {
+  return (
+    <div
+      className="h-9 w-9 rounded-xl"
+      style={{
+        border: `1px solid ${theme.border}`,
+        background: `linear-gradient(135deg, rgba(0,0,0,0.92), rgba(0,0,0,0.78))`,
+      }}
+    >
+      <div className="grid h-full w-full place-items-center text-[11px] font-semibold tracking-[0.28em]" style={{ color: "#fff" }}>
+        R
+      </div>
+    </div>
+  );
+}
 
 function NavBtn({
   theme,
@@ -883,10 +764,7 @@ function NavBtn({
       <span className="relative">
         {children}
         {active && (
-          <span
-            className="absolute -bottom-2 left-0 h-[2px] w-full rounded-full"
-            style={{ background: theme.a }}
-          />
+          <span className="absolute -bottom-2 left-0 h-[2px] w-full rounded-full" style={{ background: theme.ink }} />
         )}
       </span>
     </button>
@@ -897,57 +775,131 @@ function Pill({ theme, children }: { theme: Theme; children: React.ReactNode }) 
   return (
     <span
       className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.22em]"
-      style={{
-        border: `1px solid ${theme.border}`,
-        background: "rgba(255,255,255,0.55)",
-        color: theme.muted,
-      }}
+      style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.70)", color: theme.muted }}
     >
       {children}
     </span>
   );
 }
 
-function HeroProof({
-  theme,
-  title,
-  desc,
-  dot,
-}: {
-  theme: Theme;
-  title: string;
-  desc: string;
-  dot: string;
-}) {
+function KeyStat({ theme, k, v }: { theme: Theme; k: string; v: string }) {
   return (
-    <div
-      className="rounded-[22px] p-4"
-      style={{
-        border: `1px solid ${theme.border}`,
-        background: "rgba(255,255,255,0.55)",
-      }}
-    >
-      <div className="flex items-center gap-2">
-        <span className="h-2 w-2 rounded-full" style={{ background: dot }} />
-        <div className="text-[11px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
-          {title}
-        </div>
+    <div className="rounded-[22px] p-4" style={{ border: `1px solid ${theme.border}`, background: theme.soft }}>
+      <div className="text-[10px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
+        {k}
       </div>
-      <div className="mt-2 text-[12px] leading-relaxed" style={{ color: theme.muted }}>
-        {desc}
+      <div className="mt-2 text-[13px] font-semibold" style={{ color: theme.ink }}>
+        {v}
       </div>
     </div>
   );
 }
 
-function HeroLine({ theme, k, v }: { theme: Theme; k: string; v: string }) {
+function HeroPoster({ theme }: { theme: Theme }) {
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="text-[10px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
-        {k}
+    <div className="rounded-[34px] overflow-hidden" style={{ border: `1px solid ${theme.border}`, background: theme.soft }}>
+      <div className="p-6">
+        <div className="text-[10px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
+          What makes this different
+        </div>
+
+        <div className="mt-5 rounded-[26px] p-5" style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.70)" }}>
+          <div className="text-[12px] font-semibold" style={{ color: theme.ink }}>
+            We build the “brain” + the “hands”.
+          </div>
+          <div className="mt-2 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
+            A grounded knowledge system (RAG + KG) and agents that act in your tools — under governance.
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3">
+          <PosterRow theme={theme} label="Brain" value="RAG + Knowledge Graph" chip={theme.accentB} />
+          <PosterRow theme={theme} label="Hands" value="Agents in M365 / Slack / CRM" chip={theme.accentA} />
+          <PosterRow theme={theme} label="Rules" value="Policies, approvals, audit trails" chip={theme.accentC} />
+        </div>
+
+        <div className="mt-6 h-[1px]" style={{ background: theme.border }} />
+
+        <div className="mt-6 text-[11px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
+          Built for reality:
+        </div>
+
+        <div className="mt-3 grid gap-2 text-[13px]" style={{ color: theme.muted }}>
+          <div>• Your docs change</div>
+          <div>• Your tools sprawl</div>
+          <div>• Your compliance matters</div>
+          <div>• Humans must stay in control</div>
+        </div>
       </div>
-      <div className="text-[12px]" style={{ color: theme.muted }}>
-        {v}
+
+      <div className="h-[10px]" style={{ background: `linear-gradient(90deg, ${theme.accentA}aa, ${theme.accentB}aa, ${theme.accentC}aa)` }} />
+    </div>
+  );
+}
+
+function PosterRow({ theme, label, value, chip }: { theme: Theme; label: string; value: string; chip: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-[22px] px-4 py-3"
+         style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.65)" }}>
+      <div className="flex items-center gap-2">
+        <span className="h-2 w-2 rounded-full" style={{ background: chip }} />
+        <span className="text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>{label}</span>
+      </div>
+      <div className="text-[12px] font-semibold" style={{ color: theme.ink }}>{value}</div>
+    </div>
+  );
+}
+
+function BigCallout({ theme, title, body }: { theme: Theme; title: string; body: string }) {
+  return (
+    <div className="rounded-[28px] p-6" style={{ border: `1px solid ${theme.border}`, background: theme.soft }}>
+      <div className="text-[14px] font-semibold" style={{ color: theme.ink }}>
+        {title}
+      </div>
+      <div className="mt-2 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
+        {body}
+      </div>
+      <div className="mt-6 h-[1px]" style={{ background: theme.border }} />
+      <div className="mt-4 text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
+        REZIIIX / capability build
+      </div>
+    </div>
+  );
+}
+
+function EngageCard({
+  theme,
+  title,
+  sub,
+  body,
+  points,
+}: {
+  theme: Theme;
+  title: string;
+  sub: string;
+  body: string;
+  points: string[];
+}) {
+  return (
+    <div className="rounded-[28px] p-6" style={{ border: `1px solid ${theme.border}`, background: theme.soft }}>
+      <div className="text-[10px] uppercase tracking-[0.32em]" style={{ color: theme.muted }}>
+        {sub}
+      </div>
+      <div className="mt-3 text-[16px] font-semibold" style={{ color: theme.ink }}>
+        {title}
+      </div>
+      <div className="mt-3 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
+        {body}
+      </div>
+      <div className="mt-5 space-y-2">
+        {points.map((p) => (
+          <div key={p} className="flex items-start gap-2">
+            <span className="mt-2 h-2 w-2 rounded-full" style={{ background: theme.ink }} />
+            <span className="text-[13px]" style={{ color: theme.muted }}>
+              {p}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -985,7 +937,7 @@ function CapabilityModal({
           exit={{ opacity: 0 }}
           onMouseDown={onClose}
         >
-          <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.35)" }} />
+          <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.38)" }} />
           <motion.div
             onMouseDown={(e) => e.stopPropagation()}
             initial={{ y: reduceMotion ? 0 : 14, opacity: 0, scale: 0.99 }}
@@ -1008,16 +960,13 @@ function CapabilityModal({
               <button
                 onClick={onClose}
                 className="rounded-full px-3 py-2 text-[12px]"
-                style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
+                style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.70)" }}
               >
                 Close
               </button>
             </div>
 
-            <div
-              className="mt-6 rounded-3xl p-5"
-              style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
-            >
+            <div className="mt-6 rounded-3xl p-5" style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.70)" }}>
               <div className="text-[13px] leading-relaxed" style={{ color: theme.muted }}>
                 {open.body}
               </div>
@@ -1025,7 +974,7 @@ function CapabilityModal({
               <div className="mt-4 grid gap-2 md:grid-cols-2">
                 {open.bullets.map((b) => (
                   <div key={b} className="flex items-start gap-2">
-                    <span className="mt-2 h-2 w-2 rounded-full" style={{ background: theme.a }} />
+                    <span className="mt-2 h-2 w-2 rounded-full" style={{ background: theme.ink }} />
                     <span className="text-[13px]" style={{ color: theme.muted }}>
                       {b}
                     </span>
@@ -1034,70 +983,18 @@ function CapabilityModal({
               </div>
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-2">
-              <Pill theme={theme}>Ownership-first</Pill>
-              <Pill theme={theme}>Enterprise constraints</Pill>
-              <Pill theme={theme}>Built to last</Pill>
+            <div className="mt-6 flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
+                REZIIIX
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.28em]" style={{ color: theme.ink }}>
+                internal capability
+              </span>
             </div>
           </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
-  );
-}
-
-/** ---------------- ENGAGE CARDS ---------------- */
-
-function OfferCard({
-  theme,
-  title,
-  price,
-  body,
-  bullets,
-  badge,
-}: {
-  theme: Theme;
-  title: string;
-  price: string;
-  body: string;
-  bullets: string[];
-  badge: string;
-}) {
-  return (
-    <div className="rounded-[28px] p-6" style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.32em]" style={{ color: theme.muted }}>
-            {badge}
-          </div>
-          <div className="mt-3 text-[15px] font-semibold">{title}</div>
-          <div className="mt-2 text-[12px]" style={{ color: theme.muted }}>
-            {price}
-          </div>
-        </div>
-        <span
-          className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
-          style={{ color: theme.b, border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
-        >
-          →
-        </span>
-      </div>
-
-      <div className="mt-4 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
-        {body}
-      </div>
-
-      <div className="mt-5 space-y-2">
-        {bullets.map((x) => (
-          <div key={x} className="flex items-start gap-2">
-            <span className="mt-2 h-2 w-2 rounded-full" style={{ background: theme.c }} />
-            <span className="text-[13px]" style={{ color: theme.muted }}>
-              {x}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -1110,7 +1007,7 @@ function Input({ theme, placeholder }: { theme: Theme; placeholder: string }) {
       className="w-full rounded-2xl px-4 py-3 text-sm outline-none"
       style={{
         border: `1px solid ${theme.border}`,
-        background: "rgba(255,255,255,0.55)",
+        background: "rgba(255,255,255,0.70)",
         color: theme.ink,
       }}
     />
@@ -1124,7 +1021,7 @@ function Textarea({ theme, placeholder }: { theme: Theme; placeholder: string })
       className="h-28 w-full resize-none rounded-2xl px-4 py-3 text-sm outline-none"
       style={{
         border: `1px solid ${theme.border}`,
-        background: "rgba(255,255,255,0.55)",
+        background: "rgba(255,255,255,0.70)",
         color: theme.ink,
       }}
     />
@@ -1164,12 +1061,12 @@ function IntegrationUniverseNASA({ theme, items }: { theme: Theme; items: string
   // Node bounds: prevents clipping
   const NODE_W = 132;
   const NODE_H = 38;
-  const SAFE_PAD = 22;
+  const SAFE_PAD = 26;
 
-  const safeRX = Math.max(140, size.w / 2 - NODE_W - SAFE_PAD);
-  const safeRY = Math.max(120, size.h / 2 - NODE_H - SAFE_PAD);
+  const safeRX = Math.max(150, size.w / 2 - NODE_W - SAFE_PAD);
+  const safeRY = Math.max(130, size.h / 2 - NODE_H - SAFE_PAD);
 
-  // Tiers (designed)
+  // Tiers
   const tiers = useMemo(() => {
     const core = ["Microsoft 365", "Copilot Studio", "Slack"];
     const biz = ["Salesforce", "HubSpot", "ServiceNow", "Zendesk"];
@@ -1183,12 +1080,12 @@ function IntegrationUniverseNASA({ theme, items }: { theme: Theme; items: string
 
   // Starfield
   const stars = useMemo(() => {
-    const count = 90;
+    const count = 110;
     return Array.from({ length: count }).map((_, i) => {
       const x = (Math.sin(i * 999) * 0.5 + 0.5) * size.w;
       const y = (Math.cos(i * 777) * 0.5 + 0.5) * size.h;
       const r = 0.7 + ((i * 13) % 12) * 0.08;
-      const o = 0.14 + ((i * 17) % 10) * 0.03;
+      const o = 0.12 + ((i * 17) % 10) * 0.03;
       return { x, y, r, o };
     });
   }, [size.w, size.h]);
@@ -1198,14 +1095,13 @@ function IntegrationUniverseNASA({ theme, items }: { theme: Theme; items: string
     const now = Date.now() / 1000;
     const breatheK = 1 + breath * 0.05;
 
-    // Ellipse factor uses width more
-    const ex = 1.12;
+    const ex = 1.16;
     const ey = 0.78;
 
     const rings = [
-      { r: 0.42, drift: 4.5 },
-      { r: 0.64, drift: 6.5 },
-      { r: 0.86, drift: 8.0 },
+      { r: 0.40, drift: 4.0 },
+      { r: 0.63, drift: 6.0 },
+      { r: 0.88, drift: 7.6 },
     ];
 
     const all = tiers.flatMap((tier) => {
@@ -1213,27 +1109,19 @@ function IntegrationUniverseNASA({ theme, items }: { theme: Theme; items: string
       const n = Math.max(tier.labels.length, 1);
 
       return tier.labels.map((label, i) => {
-        const a = (i / n) * Math.PI * 2 + tier.t * 0.72 + 0.4;
+        const a = (i / n) * Math.PI * 2 + tier.t * 0.82 + 0.25;
 
-        // Safe ellipse radii (cannot exceed container bounds)
         const rx = safeRX * ring.r * breatheK * ex;
         const ry = safeRY * ring.r * breatheK * ey;
 
-        // Base position guaranteed inside
         const baseX = center.x + Math.cos(a) * rx;
         const baseY = center.y + Math.sin(a) * ry;
 
-        // Subtle drift
         const drift = reduceMotion ? 0 : ring.drift;
-        const dx = reduceMotion ? 0 : Math.sin(now * 0.65 + i * 0.9 + tier.t) * drift;
-        const dy = reduceMotion ? 0 : Math.cos(now * 0.55 + i * 0.8 + tier.t) * drift;
+        const dx = reduceMotion ? 0 : Math.sin(now * 0.62 + i * 0.9 + tier.t) * drift;
+        const dy = reduceMotion ? 0 : Math.cos(now * 0.54 + i * 0.8 + tier.t) * drift;
 
-        return {
-          label,
-          tier: tier.t,
-          x: baseX + dx,
-          y: baseY + dy,
-        };
+        return { label, tier: tier.t, x: baseX + dx, y: baseY + dy };
       });
     });
 
@@ -1259,10 +1147,9 @@ function IntegrationUniverseNASA({ theme, items }: { theme: Theme; items: string
     return `M ${cx} ${cy} Q ${ctrlX} ${ctrlY} ${tx} ${ty}`;
   }, [hoveredNode, center.x, center.y]);
 
-  // constellation edges (nearest links)
   const edges = useMemo(() => {
     const pts = nodes;
-    const maxDist = Math.min(size.w, size.h) * 0.30;
+    const maxDist = Math.min(size.w, size.h) * 0.32;
     const E: Array<{ a: any; b: any; w: number }> = [];
 
     for (let i = 0; i < pts.length; i++) {
@@ -1289,16 +1176,15 @@ function IntegrationUniverseNASA({ theme, items }: { theme: Theme; items: string
     <div
       ref={ref}
       className="relative h-[440px] md:h-[520px] overflow-hidden rounded-[36px]"
-      style={{ border: `1px solid ${theme.border}`, background: theme.card }}
+      style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.60)" }}
     >
-      {/* ambient in-card */}
       <div
         className="absolute -inset-24 opacity-55 blur-3xl"
         style={{
           background: `
-            radial-gradient(circle at 18% 20%, ${theme.a}22, transparent 55%),
-            radial-gradient(circle at 86% 26%, ${theme.b}18, transparent 58%),
-            radial-gradient(circle at 56% 88%, ${theme.c}14, transparent 62%)
+            radial-gradient(circle at 18% 20%, ${theme.accentA}22, transparent 55%),
+            radial-gradient(circle at 86% 26%, ${theme.accentB}18, transparent 58%),
+            radial-gradient(circle at 56% 88%, ${theme.accentC}14, transparent 62%)
           `,
         }}
       />
@@ -1323,29 +1209,22 @@ function IntegrationUniverseNASA({ theme, items }: { theme: Theme; items: string
         ))}
       </div>
 
-      {/* svg layer */}
       <svg className="pointer-events-none absolute inset-0" width={size.w} height={size.h}>
-        {/* orbit rings */}
-        {[0.42, 0.64, 0.86].map((r, i) => (
+        {[0.40, 0.63, 0.88].map((r, i) => (
           <motion.ellipse
             key={i}
             cx={center.x}
             cy={center.y}
-            rx={safeRX * r * 1.12}
+            rx={safeRX * r * 1.16}
             ry={safeRY * r * 0.78}
             fill="none"
-            stroke="rgba(0,0,0,0.10)"
+            stroke="rgba(0,0,0,0.12)"
             strokeDasharray="4 7"
             animate={reduceMotion ? {} : { opacity: [0.85, 0.45, 0.85], strokeDashoffset: [0, 60] }}
-            transition={
-              reduceMotion
-                ? { duration: 0.1 }
-                : { duration: 10 + i * 3, repeat: Infinity, ease: "linear" }
-            }
+            transition={reduceMotion ? { duration: 0.1 } : { duration: 11 + i * 3, repeat: Infinity, ease: "linear" }}
           />
         ))}
 
-        {/* edges */}
         {edges.map((e, i) => (
           <line
             key={i}
@@ -1353,30 +1232,29 @@ function IntegrationUniverseNASA({ theme, items }: { theme: Theme; items: string
             y1={e.a.y}
             x2={e.b.x}
             y2={e.b.y}
-            stroke={`rgba(0,0,0,${0.05 + e.w * 0.11})`}
+            stroke={`rgba(0,0,0,${0.05 + e.w * 0.12})`}
             strokeWidth={1}
           />
         ))}
 
-        {/* hover beam */}
         <AnimatePresence>
           {beamPath && hoveredNode && (
             <>
               <motion.path
                 d={beamPath}
                 fill="none"
-                stroke={`rgba(0,0,0,0.10)`}
-                strokeWidth={9}
+                stroke={`rgba(0,0,0,0.12)`}
+                strokeWidth={10}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                style={{ filter: "blur(7px)" }}
+                style={{ filter: "blur(8px)" }}
               />
               <motion.path
                 d={beamPath}
                 fill="none"
                 stroke={`url(#beamGrad)`}
-                strokeWidth={2.3}
+                strokeWidth={2.4}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -1392,18 +1270,6 @@ function IntegrationUniverseNASA({ theme, items }: { theme: Theme; items: string
                 exit={{ opacity: 0 }}
                 transition={{ duration: 1.05, ease: "easeInOut" }}
               />
-              <motion.circle
-                cx={hoveredNode.x}
-                cy={hoveredNode.y}
-                r={18}
-                fill="none"
-                stroke={`rgba(0,0,0,0.12)`}
-                strokeWidth={8}
-                style={{ filter: "blur(7px)" }}
-                initial={{ opacity: 0, scale: 0.7 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.7 }}
-              />
             </>
           )}
         </AnimatePresence>
@@ -1417,19 +1283,16 @@ function IntegrationUniverseNASA({ theme, items }: { theme: Theme; items: string
             x2={hoveredNode?.x ?? center.x}
             y2={hoveredNode?.y ?? center.y}
           >
-            <stop offset="0%" stopColor={theme.a} stopOpacity="0.60" />
-            <stop offset="55%" stopColor={theme.b} stopOpacity="0.70" />
-            <stop offset="100%" stopColor={theme.c} stopOpacity="0.60" />
+            <stop offset="0%" stopColor={theme.accentA} stopOpacity="0.70" />
+            <stop offset="55%" stopColor={theme.accentB} stopOpacity="0.70" />
+            <stop offset="100%" stopColor={theme.accentC} stopOpacity="0.65" />
           </linearGradient>
         </defs>
       </svg>
 
       {/* center */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-        <div
-          className="rounded-[26px] px-6 py-5 text-center"
-          style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.70)" }}
-        >
+        <div className="rounded-[26px] px-6 py-5 text-center" style={{ border: `1px solid ${theme.border}`, background: "rgba(246,242,234,0.86)" }}>
           <div className="text-[10px] uppercase tracking-[0.32em]" style={{ color: theme.muted }}>
             REZIIIX
           </div>
@@ -1453,17 +1316,18 @@ function IntegrationUniverseNASA({ theme, items }: { theme: Theme; items: string
           whileHover={{ scale: 1.08 }}
         >
           <div
-            className="whitespace-nowrap rounded-full px-3.5 py-2 text-[11px] uppercase tracking-[0.18em] shadow-[0_18px_55px_rgba(0,0,0,0.08)]"
+            className="whitespace-nowrap rounded-full px-3.5 py-2 text-[11px] uppercase tracking-[0.18em]"
             style={{
               border: `1px solid ${theme.border}`,
-              background: "rgba(255,255,255,0.74)",
+              background: "rgba(246,242,234,0.88)",
               color: theme.muted,
+              boxShadow: "0 18px 55px rgba(0,0,0,0.08)",
             }}
           >
             <span
               className="mr-2 inline-block h-2 w-2 rounded-full"
               style={{
-                background: n.tier === 0 ? theme.a : n.tier === 1 ? theme.b : theme.c,
+                background: n.tier === 0 ? theme.accentA : n.tier === 1 ? theme.accentB : theme.accentC,
               }}
             />
             {n.label}
