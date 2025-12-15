@@ -46,7 +46,7 @@ export default function Home() {
             playsInline
             className="w-full h-full object-cover"
           >
-            <source src="/sphere-video.mp4" type="video/mp4" />
+            <source src="reziiix-site/public/sphere.mp4" type="video/mp4" />
           </video>
         </motion.div>
 
@@ -64,7 +64,7 @@ export default function Home() {
               We do not predict the future. We compute it.
               <br />
               <span className="text-gray-500 text-sm mt-2 block font-mono">
-                // SYSTEM_READY // V.2.0.4
+
               </span>
             </p>
             
