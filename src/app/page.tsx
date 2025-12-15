@@ -1,12 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  AnimatePresence,
-  motion,
-  useReducedMotion,
-  useScroll,
-} from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion, useScroll } from "framer-motion";
 
 /** ---------------- TYPES / THEMES ---------------- */
 
@@ -79,7 +74,7 @@ function scrollToId(id: string) {
   window.scrollTo({ top: y, behavior: "smooth" });
 }
 
-/** ---------------- THEME BACKGROUND (FIXES GLITCH BLOCKS) ---------------- */
+/** ---------------- THEME BACKGROUND (GLITCH-FREE) ---------------- */
 
 function ThemeBackground({ theme }: { theme: Theme }) {
   return (
@@ -113,7 +108,8 @@ export default function HomePage() {
   // subtle cursor glow for the whole page (calm)
   const [cursor, setCursor] = useState({ x: 0, y: 0, on: false });
   useEffect(() => {
-    const mm = (e: MouseEvent) => setCursor({ x: e.clientX, y: e.clientY, on: true });
+    const mm = (e: MouseEvent) =>
+      setCursor({ x: e.clientX, y: e.clientY, on: true });
     const leave = () => setCursor((p) => ({ ...p, on: false }));
     window.addEventListener("mousemove", mm);
     window.addEventListener("mouseleave", leave);
@@ -126,7 +122,7 @@ export default function HomePage() {
   // active nav highlight
   const [active, setActive] = useState("top");
   useEffect(() => {
-    const ids = ["top", "what", "ecosystem", "offers", "contact"];
+    const ids = ["top", "truth", "belief", "proof", "ecosystem", "engage", "contact"];
     const obs = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
@@ -148,31 +144,31 @@ export default function HomePage() {
   const capabilities: Capability[] = useMemo(
     () => [
       {
-        title: "Automation Systems",
-        subtitle: "End-to-end capability, not a demo.",
-        body: "We design and ship automation that behaves like real software: measurable, maintainable, and owned by your team over time.",
-        bullets: ["Production-grade build", "Clear control & observability", "Integrates into your tools"],
+        title: "Capability Build",
+        subtitle: "AI inside your organization — owned and evolvable.",
+        body: "We build systems inside your environment so your team owns the architecture, the constraints, and the evolution — not a vendor.",
+        bullets: ["Designed for ownership", "Patterns your team can extend", "Built like real software"],
         tag: "Core",
       },
       {
-        title: "Enterprise Governance",
-        subtitle: "Built for serious constraints.",
-        body: "Security posture, boundaries, approvals, auditability. We design for the reality of enterprise environments from day one.",
-        bullets: ["Policy-aligned behavior", "Audit trail mindset", "Scoped permissions"],
+        title: "Governance + Control",
+        subtitle: "Policy, review paths, and auditability by design.",
+        body: "Enterprise reality: approvals, access boundaries, human oversight, and traceability. We build with governance as a first-class requirement.",
+        bullets: ["Human-in-the-loop paths", "Audit trails and observability", "Scoped permissions"],
         tag: "Trust",
       },
       {
         title: "Integration Engineering",
-        subtitle: "Where work already lives.",
-        body: "M365, Slack, email, CRMs, service desks, internal APIs. We don’t force new tools—your stack stays the interface.",
-        bullets: ["M365 / Slack / Email", "CRM + service desk", "Internal API connectors"],
+        subtitle: "Your tools remain the interface.",
+        body: "We integrate where work already lives — Microsoft 365, Copilot Studio, Slack, CRMs, service desks, and internal APIs — so adoption is natural.",
+        bullets: ["M365 + Copilot Studio", "CRM + service desk", "Custom connectors"],
         tag: "Stack",
       },
       {
         title: "Enablement",
-        subtitle: "Your team can learn it too.",
-        body: "If you want in-house capability: we can run workshops and build alongside your team—so you’re not dependent on us.",
-        bullets: ["Copilot Studio / M365 agents", "Workshops + templates", "Best-practice governance"],
+        subtitle: "We can teach your team to operate and extend it.",
+        body: "If you want in-house capability, we run workshops and build alongside your team — so you’re not dependent on us for every change.",
+        bullets: ["Copilot Studio / M365 agents", "Workshops + templates", "Operating playbooks"],
         tag: "Optional",
       },
     ],
@@ -206,7 +202,7 @@ export default function HomePage() {
         <ThemeBackground theme={theme} />
       </AnimatePresence>
 
-      {/* cursor ambient (very subtle) */}
+      {/* cursor ambient (subtle) */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-[5]">
         <motion.div
           animate={{
@@ -227,7 +223,10 @@ export default function HomePage() {
       {/* TOP NAV */}
       <header
         className="sticky top-0 z-50 backdrop-blur-xl"
-        style={{ background: `${theme.bg}cc`, borderBottom: `1px solid ${theme.border}` }}
+        style={{
+          background: `${theme.bg}cc`,
+          borderBottom: `1px solid ${theme.border}`,
+        }}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <button onClick={() => scrollToId("top")} className="flex items-center gap-3">
@@ -241,20 +240,26 @@ export default function HomePage() {
             <div className="leading-none text-left">
               <div className="text-[11px] uppercase tracking-[0.40em]">REZIIIX</div>
               <div className="mt-1 text-[11px]" style={{ color: theme.muted }}>
-                AI automation studio
+                AI capability studio
               </div>
             </div>
           </button>
 
           <nav className="hidden items-center gap-1 md:flex">
-            <NavBtn theme={theme} active={active === "what"} onClick={() => scrollToId("what")}>
-              What
+            <NavBtn theme={theme} active={active === "truth"} onClick={() => scrollToId("truth")}>
+              Truth
+            </NavBtn>
+            <NavBtn theme={theme} active={active === "belief"} onClick={() => scrollToId("belief")}>
+              Belief
+            </NavBtn>
+            <NavBtn theme={theme} active={active === "proof"} onClick={() => scrollToId("proof")}>
+              Proof
             </NavBtn>
             <NavBtn theme={theme} active={active === "ecosystem"} onClick={() => scrollToId("ecosystem")}>
-              Ecosystem
+              Stack
             </NavBtn>
-            <NavBtn theme={theme} active={active === "offers"} onClick={() => scrollToId("offers")}>
-              Offers
+            <NavBtn theme={theme} active={active === "engage"} onClick={() => scrollToId("engage")}>
+              Engage
             </NavBtn>
             <NavBtn theme={theme} active={active === "contact"} onClick={() => scrollToId("contact")}>
               Contact
@@ -266,7 +271,10 @@ export default function HomePage() {
               type="button"
               onClick={() => setT((x) => x + 1)}
               className="rounded-full px-3 py-2 text-[12px] transition"
-              style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
+              style={{
+                border: `1px solid ${theme.border}`,
+                background: "rgba(255,255,255,0.55)",
+              }}
             >
               Theme: {theme.name}
             </button>
@@ -282,7 +290,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* HERO (TYPOGRAPHIC / APPLE-ISH) */}
+      {/* HERO (MANIFESTO) */}
       <section id="top" className="relative">
         <div className="mx-auto max-w-6xl px-4 py-10 md:py-16">
           <div
@@ -318,7 +326,7 @@ export default function HomePage() {
                   }}
                 >
                   <span className="h-2 w-2 rounded-full" style={{ background: theme.b }} />
-                  AI automation studio
+                  a point of view
                 </span>
                 <span
                   className="hidden sm:inline-flex rounded-full px-3 py-2 text-[11px] uppercase tracking-[0.30em]"
@@ -328,7 +336,7 @@ export default function HomePage() {
                     color: theme.muted,
                   }}
                 >
-                  built for real teams
+                  calm, governed systems
                 </span>
               </div>
 
@@ -352,14 +360,15 @@ export default function HomePage() {
                 <motion.h1
                   initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: reduceMotion ? 0.1 : 0.8, ease: [0.2, 1, 0.2, 1] }}
+                  transition={{
+                    duration: reduceMotion ? 0.1 : 0.8,
+                    ease: [0.2, 1, 0.2, 1],
+                  }}
                   className="text-[clamp(2.4rem,5.6vw,5.1rem)] font-semibold leading-[0.92] tracking-[-0.05em]"
                 >
-                  Automation
-                  <span style={{ color: theme.muted }}>—</span>{" "}
-                  built like{" "}
+                  Most companies will never{" "}
                   <span className="relative inline-block">
-                    a product
+                    own their AI
                     <span
                       aria-hidden
                       className="absolute left-0 -bottom-2 h-[8px] w-full rounded-full"
@@ -374,21 +383,21 @@ export default function HomePage() {
                 </motion.h1>
 
                 <p className="mt-6 max-w-xl text-[15px] leading-relaxed" style={{ color: theme.muted }}>
-                  REZIIIX builds automation systems that plug into your existing tools—so teams can move faster
-                  without adopting another platform.
+                  They’ll integrate tools, subscribe to platforms, and deploy copilots they don’t fully control.
+                  Over time, “automation” becomes dependency.
                 </p>
 
                 {/* actions */}
                 <div className="mt-8 flex flex-wrap items-center gap-3">
                   <button
-                    onClick={() => scrollToId("contact")}
+                    onClick={() => scrollToId("belief")}
                     className="rounded-2xl px-6 py-3 text-sm font-semibold text-white transition"
                     style={{ background: theme.a }}
                   >
-                    Talk to REZIIIX
+                    See our belief
                   </button>
                   <button
-                    onClick={() => scrollToId("what")}
+                    onClick={() => scrollToId("contact")}
                     className="rounded-2xl px-6 py-3 text-sm transition"
                     style={{
                       border: `1px solid ${theme.border}`,
@@ -396,15 +405,30 @@ export default function HomePage() {
                       color: theme.ink,
                     }}
                   >
-                    What we build
+                    Start a conversation
                   </button>
                 </div>
 
                 {/* micro-proof row */}
                 <div className="mt-9 grid gap-3 md:grid-cols-3">
-                  <HeroProof theme={theme} title="Integrates" desc="M365, Slack, CRM, service desk, internal APIs." dot={theme.b} />
-                  <HeroProof theme={theme} title="Governed" desc="Designed for policies, review, audit trails." dot={theme.a} />
-                  <HeroProof theme={theme} title="Enablement" desc="Workshops for Copilot Studio / M365 agents." dot={theme.c} />
+                  <HeroProof
+                    theme={theme}
+                    title="Owned"
+                    desc="Capability built in your environment — not rented."
+                    dot={theme.b}
+                  />
+                  <HeroProof
+                    theme={theme}
+                    title="Governed"
+                    desc="Policies, review paths, and auditability by design."
+                    dot={theme.a}
+                  />
+                  <HeroProof
+                    theme={theme}
+                    title="Evolvable"
+                    desc="Patterns your team can extend over time."
+                    dot={theme.c}
+                  />
                 </div>
               </div>
 
@@ -430,20 +454,20 @@ export default function HomePage() {
 
                 <div className="relative">
                   <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
-                    The promise
+                    The belief
                   </div>
                   <div className="mt-4 text-[18px] font-semibold leading-snug tracking-[-0.02em]">
-                    You own an AI factory inside your company.
+                    AI should be an internal capability.
                   </div>
                   <div className="mt-3 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
-                    We build the capability in your environment, aligned with your tools and constraints—
-                    then your team owns it.
+                    Reziiix builds systems inside your organization — aligned to your tools, policies, and people —
+                    so you own the evolution, not a vendor.
                   </div>
 
                   <div className="mt-6 grid gap-3">
-                    <HeroLine theme={theme} k="Outcome" v="Less manual work. More control." />
+                    <HeroLine theme={theme} k="Outcome" v="Ownership over novelty." />
                     <HeroLine theme={theme} k="Interface" v="Your tools stay the UI." />
-                    <HeroLine theme={theme} k="Path" v="Pilot → scale → enablement." />
+                    <HeroLine theme={theme} k="Reality" v="Governance, audit trails, human control." />
                   </div>
 
                   <div
@@ -457,7 +481,7 @@ export default function HomePage() {
                       REZIIIX
                     </span>
                     <span className="text-[10px] uppercase tracking-[0.30em]" style={{ color: theme.a }}>
-                      calm systems
+                      capability studio
                     </span>
                   </div>
                 </div>
@@ -470,26 +494,68 @@ export default function HomePage() {
               style={{ borderColor: theme.border, color: theme.muted }}
             >
               <span className="text-[11px] uppercase tracking-[0.30em]">Singapore · Global</span>
-              <span className="text-[11px] uppercase tracking-[0.30em]">Enterprise-ready builds</span>
+              <span className="text-[11px] uppercase tracking-[0.30em]">Built for enterprise constraints</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* WHAT */}
-      <section id="what" className="border-t" style={{ borderColor: theme.border }}>
+      {/* TRUTH */}
+      <section id="truth" className="border-t" style={{ borderColor: theme.border }}>
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <div className="grid gap-8 md:grid-cols-[1.05fr,0.95fr] md:items-start">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
+                The truth
+              </div>
+              <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
+                AI adoption is optimized for speed —{" "}
+                <span style={{ color: theme.a }}>not durability</span>.
+              </h2>
+              <p className="mt-6 max-w-xl text-[14px] leading-relaxed" style={{ color: theme.muted }}>
+                Most initiatives start as pilots and end as dependencies: fragmented logic, unclear responsibility,
+                and systems no one can confidently govern or evolve.
+              </p>
+            </div>
+
+            <div className="rounded-[30px] p-6" style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
+              <div className="text-[11px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
+                What it turns into
+              </div>
+              <div className="mt-4 space-y-3 text-[13px]" style={{ color: theme.muted }}>
+                <div>• Automations scattered across tools</div>
+                <div>• Vendor dependency and locked knowledge</div>
+                <div>• Security/compliance discomfort</div>
+                <div>• No clear owner when it breaks</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* BELIEF + CAPABILITIES */}
+      <section id="belief" className="border-t" style={{ borderColor: theme.border }}>
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-10 md:grid-cols-[0.95fr,1.05fr] md:items-start">
             <div>
               <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
-                What we build
+                Our belief
               </div>
               <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                Capabilities you can <span style={{ color: theme.b }}>deploy</span>.
+                AI should be an{" "}
+                <span style={{ color: theme.b }}>internal capability</span>.
               </h2>
-              <p className="mt-6 max-w-md text-[14px] leading-relaxed" style={{ color: theme.muted }}>
-                Click any tile. This is not a platform UI — it’s a portfolio of what REZIIIX ships.
+              <p className="mt-6 max-w-xl text-[14px] leading-relaxed" style={{ color: theme.muted }}>
+                Like engineering, finance, or security — AI should live inside the organization,
+                aligned to its tools, data boundaries, and operating reality.
               </p>
+
+              <div className="mt-8 flex flex-wrap gap-2">
+                <Pill theme={theme}>Owned</Pill>
+                <Pill theme={theme}>Governed</Pill>
+                <Pill theme={theme}>Evolvable</Pill>
+                <Pill theme={theme}>Observable</Pill>
+              </div>
 
               <div
                 className="mt-8 rounded-3xl p-6"
@@ -525,18 +591,19 @@ export default function HomePage() {
                     </div>
                     <span
                       className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                      style={{ color: theme.a, border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
+                      style={{
+                        color: theme.a,
+                        border: `1px solid ${theme.border}`,
+                        background: "rgba(255,255,255,0.55)",
+                      }}
                     >
                       →
                     </span>
                   </div>
 
-                  <div
-                    className="mt-6 h-[10px] w-full rounded-full overflow-hidden"
-                    style={{ background: "rgba(0,0,0,0.06)" }}
-                  >
+                  <div className="mt-6 h-[10px] w-full rounded-full overflow-hidden" style={{ background: "rgba(0,0,0,0.06)" }}>
                     <div
-                      className="h-full rounded-full transition-all group-hover:w-[88%] w-[62%]"
+                      className="h-full w-[62%] rounded-full transition-all group-hover:w-[88%]"
                       style={{ background: `linear-gradient(90deg, ${theme.a}, ${theme.b})` }}
                     />
                   </div>
@@ -547,19 +614,73 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ECOSYSTEM (NASA WARP) */}
+      {/* PROOF (RESEARCH) */}
+      <section id="proof" className="border-t" style={{ borderColor: theme.border }}>
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <div className="grid gap-10 md:grid-cols-[1.05fr,0.95fr] md:items-start">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
+                Proof
+              </div>
+              <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
+                Grounded in{" "}
+                <span style={{ color: theme.c }}>active research</span>.
+              </h2>
+              <p className="mt-6 max-w-xl text-[14px] leading-relaxed" style={{ color: theme.muted }}>
+                Alongside commercial work, we contribute to research in autonomous systems and social robotics at
+                The Hong Kong Polytechnic University (Research Lab for Advanced Social Robotics).
+              </p>
+              <p className="mt-4 max-w-xl text-[14px] leading-relaxed" style={{ color: theme.muted }}>
+                That work informs how we build for businesses: systems that reason, explain themselves, and stay stable over time —
+                not just impressive in demos.
+              </p>
+
+              <div className="mt-6">
+                <a
+                  className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-semibold"
+                  style={{
+                    border: `1px solid ${theme.border}`,
+                    background: "rgba(255,255,255,0.55)",
+                    color: theme.ink,
+                  }}
+                  href="https://www.polyu.edu.hk/sd/research/research-centres-and-labs/research-lab-for-advanced-social-robotics/?sc_lang=en"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  View the lab →
+                </a>
+              </div>
+            </div>
+
+            <div className="rounded-[30px] p-6" style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
+              <div className="text-[11px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
+                What we work on
+              </div>
+              <div className="mt-4 space-y-3 text-[13px]" style={{ color: theme.muted }}>
+                <div>• Cognitive “brain” architectures for social robots</div>
+                <div>• RAG + Knowledge Graph reasoning systems</div>
+                <div>• Agent-based automation under real constraints</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* STACK (NASA) */}
       <section id="ecosystem" className="border-t" style={{ borderColor: theme.border }}>
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-10 md:grid-cols-[1fr,1fr] md:items-center">
             <div>
               <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
-                Ecosystem
+                Stack
               </div>
               <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                Built to live in your <span style={{ color: theme.c }}>stack</span>.
+                Built to live inside your{" "}
+                <span style={{ color: theme.c }}>environment</span>.
               </h2>
               <p className="mt-6 max-w-md text-[14px] leading-relaxed" style={{ color: theme.muted }}>
-                Hover a tool. The constellation shows how REZIIIX connects into your environment.
+                We integrate into the tools you already use — so adoption is natural and ownership stays internal.
+                Hover a tool to see the constellation.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-2">
@@ -577,46 +698,57 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* OFFERS */}
-      <section id="offers" className="border-t" style={{ borderColor: theme.border }}>
+      {/* ENGAGE */}
+      <section id="engage" className="border-t" style={{ borderColor: theme.border }}>
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-10 md:grid-cols-[0.95fr,1.05fr] md:items-start">
             <div>
               <div className="text-[11px] uppercase tracking-[0.34em]" style={{ color: theme.muted }}>
-                Offers
+                Engage
               </div>
               <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                Choose how you want to <span style={{ color: theme.a }}>engage</span>.
+                Choose how you want to{" "}
+                <span style={{ color: theme.a }}>build</span>.
               </h2>
               <p className="mt-6 max-w-md text-[14px] leading-relaxed" style={{ color: theme.muted }}>
-                Clear packages. No platform fluff.
+                Calm, clear engagements. No platform dependency.
               </p>
+
+              <div className="mt-8 rounded-[28px] p-6" style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
+                <div className="text-[10px] uppercase tracking-[0.30em]" style={{ color: theme.muted }}>
+                  This is not for everyone
+                </div>
+                <div className="mt-3 text-[13px] leading-relaxed" style={{ color: theme.muted }}>
+                  Reziiix works best with organizations that care about long-term ownership, operate under real constraints,
+                  and prefer clarity over novelty.
+                </div>
+              </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
               <OfferCard
                 theme={theme}
-                title="Pilot Build"
+                title="Pilot capability"
                 price="Best start"
-                body="One focused automation system shipped into your environment."
-                bullets={["Fast scope", "Production-quality", "Measurable outcome"]}
-                badge="Popular"
+                body="One focused system built inside your environment to establish patterns, trust, and governance."
+                bullets={["Fast scope", "Durable architecture", "Measurable outcome"]}
+                badge="Start"
               />
               <OfferCard
                 theme={theme}
-                title="Scale Program"
+                title="Scale & embed"
                 price="For teams"
-                body="Multiple systems + stronger integrations + operating rhythm."
-                bullets={["Reusable patterns", "Monitoring mindset", "Team rollout support"]}
+                body="Expand across workflows with reusable patterns, observability, and operational ownership."
+                bullets={["Shared architecture", "Monitoring mindset", "Rollout support"]}
                 badge="Scale"
               />
               <OfferCard
                 theme={theme}
-                title="Workshop"
-                price="Enablement"
-                body="Teach your team how to build safely (Copilot Studio / M365)."
+                title="Enablement"
+                price="Workshops"
+                body="Teach your team to build and operate safely (including Copilot Studio / M365 agents)."
                 bullets={["Hands-on", "Templates", "Governance included"]}
-                badge="Optional"
+                badge="Teach"
               />
             </div>
           </div>
@@ -632,13 +764,18 @@ export default function HomePage() {
                 Contact
               </div>
               <h2 className="mt-5 text-[clamp(2.0rem,4.0vw,3.2rem)] font-semibold leading-[0.98] tracking-[-0.03em]">
-                Tell us what you want to <span style={{ color: theme.b }}>improve</span>.
+                If this way of thinking{" "}
+                <span style={{ color: theme.b }}>resonates</span>,
+                let’s talk.
               </h2>
               <p className="mt-6 max-w-md text-[14px] leading-relaxed" style={{ color: theme.muted }}>
-                Email is enough. We’ll respond with a concrete plan.
+                Start with a conversation — not a demo.
               </p>
 
-              <div className="mt-8 rounded-3xl p-6" style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
+              <div
+                className="mt-8 rounded-3xl p-6"
+                style={{ border: `1px solid ${theme.border}`, background: theme.card }}
+              >
                 <div className="text-[11px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
                   Email
                 </div>
@@ -663,7 +800,10 @@ export default function HomePage() {
                   </button>
                   <button
                     className="rounded-2xl px-6 py-3 text-sm"
-                    style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
+                    style={{
+                      border: `1px solid ${theme.border}`,
+                      background: "rgba(255,255,255,0.55)",
+                    }}
                     onClick={() => scrollToId("top")}
                   >
                     Back to top
@@ -680,7 +820,9 @@ export default function HomePage() {
               <div className="text-[11px] uppercase tracking-[0.28em]" style={{ color: theme.muted }}>
                 Quick note
               </div>
-              <div className="mt-3 text-[15px] font-semibold leading-tight">Send a message in 30 seconds.</div>
+              <div className="mt-3 text-[15px] font-semibold leading-tight">
+                Send a message in 30 seconds.
+              </div>
 
               <div className="mt-6 space-y-3">
                 <Input theme={theme} placeholder="Name" />
@@ -741,7 +883,10 @@ function NavBtn({
       <span className="relative">
         {children}
         {active && (
-          <span className="absolute -bottom-2 left-0 h-[2px] w-full rounded-full" style={{ background: theme.a }} />
+          <span
+            className="absolute -bottom-2 left-0 h-[2px] w-full rounded-full"
+            style={{ background: theme.a }}
+          />
         )}
       </span>
     </button>
@@ -752,7 +897,11 @@ function Pill({ theme, children }: { theme: Theme; children: React.ReactNode }) 
   return (
     <span
       className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.22em]"
-      style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)", color: theme.muted }}
+      style={{
+        border: `1px solid ${theme.border}`,
+        background: "rgba(255,255,255,0.55)",
+        color: theme.muted,
+      }}
     >
       {children}
     </span>
@@ -865,7 +1014,10 @@ function CapabilityModal({
               </button>
             </div>
 
-            <div className="mt-6 rounded-3xl p-5" style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}>
+            <div
+              className="mt-6 rounded-3xl p-5"
+              style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.55)" }}
+            >
               <div className="text-[13px] leading-relaxed" style={{ color: theme.muted }}>
                 {open.body}
               </div>
@@ -883,9 +1035,9 @@ function CapabilityModal({
             </div>
 
             <div className="mt-6 flex flex-wrap gap-2">
-              <Pill theme={theme}>High-quality UX</Pill>
-              <Pill theme={theme}>Practical builds</Pill>
+              <Pill theme={theme}>Ownership-first</Pill>
               <Pill theme={theme}>Enterprise constraints</Pill>
+              <Pill theme={theme}>Built to last</Pill>
             </div>
           </motion.div>
         </motion.div>
@@ -894,7 +1046,7 @@ function CapabilityModal({
   );
 }
 
-/** ---------------- OFFERS ---------------- */
+/** ---------------- ENGAGE CARDS ---------------- */
 
 function OfferCard({
   theme,
@@ -1009,7 +1161,7 @@ function IntegrationUniverseNASA({ theme, items }: { theme: Theme; items: string
 
   const center = useMemo(() => ({ x: size.w / 2, y: size.h / 2 }), [size.w, size.h]);
 
-  // Node bounds: this is the key to never clipping
+  // Node bounds: prevents clipping
   const NODE_W = 132;
   const NODE_H = 38;
   const SAFE_PAD = 22;
@@ -1185,7 +1337,11 @@ function IntegrationUniverseNASA({ theme, items }: { theme: Theme; items: string
             stroke="rgba(0,0,0,0.10)"
             strokeDasharray="4 7"
             animate={reduceMotion ? {} : { opacity: [0.85, 0.45, 0.85], strokeDashoffset: [0, 60] }}
-            transition={reduceMotion ? { duration: 0.1 } : { duration: 10 + i * 3, repeat: Infinity, ease: "linear" }}
+            transition={
+              reduceMotion
+                ? { duration: 0.1 }
+                : { duration: 10 + i * 3, repeat: Infinity, ease: "linear" }
+            }
           />
         ))}
 
@@ -1298,7 +1454,11 @@ function IntegrationUniverseNASA({ theme, items }: { theme: Theme; items: string
         >
           <div
             className="whitespace-nowrap rounded-full px-3.5 py-2 text-[11px] uppercase tracking-[0.18em] shadow-[0_18px_55px_rgba(0,0,0,0.08)]"
-            style={{ border: `1px solid ${theme.border}`, background: "rgba(255,255,255,0.74)", color: theme.muted }}
+            style={{
+              border: `1px solid ${theme.border}`,
+              background: "rgba(255,255,255,0.74)",
+              color: theme.muted,
+            }}
           >
             <span
               className="mr-2 inline-block h-2 w-2 rounded-full"
